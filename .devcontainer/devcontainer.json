@@ -1,0 +1,84 @@
+{
+  "name": "LM Watermark Lab",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-python.flake8",
+        "ms-python.isort",
+        "ms-python.mypy",
+        "ms-toolsai.jupyter",
+        "github.copilot",
+        "github.copilot-chat",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-json",
+        "bradlc.vscode-tailwindcss",
+        "ms-vscode-remote.remote-containers",
+        "eamodio.gitlens",
+        "ms-vsliveshare.vsliveshare",
+        "streetsidesoftware.code-spell-checker",
+        "shardulm94.trailing-spaces",
+        "aaron-bond.better-comments",
+        "ms-vscode.test-adapter-converter",
+        "littlefoxteam.vscode-python-test-adapter"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.formatting.provider": "black",
+        "python.formatting.blackArgs": ["--line-length=88"],
+        "python.linting.enabled": true,
+        "python.linting.flake8Enabled": true,
+        "python.linting.mypyEnabled": true,
+        "python.linting.pylintEnabled": false,
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestArgs": ["tests"],
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": "explicit"
+        },
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "files.trimFinalNewlines": true,
+        "editor.rulers": [88],
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "json.format.enable": true,
+        "yaml.format.enable": true,
+        "git.enableSmartCommit": true,
+        "git.confirmSync": false,
+        "terminal.integrated.shell.linux": "/bin/bash"
+      }
+    }
+  },
+  "postCreateCommand": "pip install -e '.[dev]' && pre-commit install",
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=${localWorkspaceFolder}/.vscode,target=/home/vscode/.vscode,type=bind,consistency=cached"
+  ],
+  "forwardPorts": [8080, 8888, 6006],
+  "portsAttributes": {
+    "8080": {
+      "label": "API Server",
+      "onAutoForward": "notify"
+    },
+    "8888": {
+      "label": "Jupyter Lab",
+      "onAutoForward": "ignore"
+    },
+    "6006": {
+      "label": "TensorBoard",
+      "onAutoForward": "ignore"
+    }
+  }
+}

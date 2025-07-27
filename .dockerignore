@@ -1,0 +1,163 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+.github/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Data and models (too large for image)
+data/models/
+data/datasets/
+data/experiments/
+data/cache/
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.npy
+*.npz
+*.model
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# Logs
+logs/
+*.log
+*.out
+
+# Temporary files
+*.tmp
+*.temp
+scratch/
+sandbox/
+playground/
+
+# Testing
+.tox/
+.nox/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+test-results.xml
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints
+.jupyter/
+
+# Large files
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Secrets
+*.key
+*.pem
+*.crt
+*.p12
+credentials.json
+token.json
+.secrets/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Monitoring
+monitoring/
+grafana_data/
+prometheus_data/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Node.js (if any frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies that will be installed in container
+requirements*.txt
+poetry.lock
+Pipfile.lock
+
+# Development tools
+.pre-commit-config.yaml
+tox.ini
+.editorconfig
+
+# Local overrides
+docker-compose.override.yml
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Kubernetes
+k8s/
+*.yaml.bak

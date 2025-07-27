@@ -1,0 +1,278 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lm-watermark-lab"
+version = "1.0.0"
+description = "Comprehensive toolkit for watermarking, detecting, and attacking LLM-generated text"
+authors = [
+    {name = "Terragon Labs", email = "contact@terragonlabs.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+keywords = ["watermarking", "llm", "detection", "security", "nlp"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Text Processing :: Linguistic"
+]
+
+dependencies = [
+    "torch>=1.12.0",
+    "transformers>=4.20.0",
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+    "pandas>=1.3.0",
+    "scikit-learn>=1.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.22.0",
+    "pydantic>=2.0.0",
+    "click>=8.0.0",
+    "rich>=12.0.0",
+    "tqdm>=4.64.0",
+    "pyyaml>=6.0",
+    "python-multipart>=0.0.6",
+    "httpx>=0.24.0",
+    "redis>=4.5.0",
+    "celery>=5.2.0",
+    "datasets>=2.10.0",
+    "tokenizers>=0.13.0",
+    "evaluate>=0.4.0",
+    "nltk>=3.8",
+    "spacy>=3.5.0",
+    "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
+    "plotly>=5.13.0",
+    "streamlit>=1.20.0",
+    "wandb>=0.15.0",
+    "python-dotenv>=1.0.0",
+    "cryptography>=40.0.0",
+    "psutil>=5.9.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-xdist>=3.2.0",
+    "pytest-mock>=3.10.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "bandit>=1.7.0",
+    "safety>=2.3.0",
+    "coverage>=7.0.0",
+    "sphinx>=6.0.0",
+    "sphinx-rtd-theme>=1.2.0",
+    "jupyter>=1.0.0",
+    "jupyterlab>=3.6.0",
+    "ipywidgets>=8.0.0",
+    "notebook>=6.5.0"
+]
+
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-xdist>=3.2.0",
+    "pytest-mock>=3.10.0",
+    "pytest-asyncio>=0.21.0",
+    "coverage>=7.0.0",
+    "factory-boy>=3.2.0",
+    "faker>=18.0.0"
+]
+
+docs = [
+    "sphinx>=6.0.0",
+    "sphinx-rtd-theme>=1.2.0",
+    "myst-parser>=1.0.0",
+    "sphinx-autodoc-typehints>=1.22.0"
+]
+
+api = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.22.0",
+    "gunicorn>=20.1.0",
+    "redis>=4.5.0",
+    "celery>=5.2.0",
+    "prometheus-client>=0.16.0"
+]
+
+viz = [
+    "streamlit>=1.20.0",
+    "plotly>=5.13.0",
+    "bokeh>=3.1.0",
+    "dash>=2.10.0"
+]
+
+research = [
+    "wandb>=0.15.0",
+    "mlflow>=2.3.0",
+    "optuna>=3.1.0",
+    "ray[tune]>=2.4.0"
+]
+
+all = [
+    "lm-watermark-lab[dev,test,docs,api,viz,research]"
+]
+
+[project.urls]
+Homepage = "https://github.com/terragon-labs/lm-watermark-lab"
+Documentation = "https://lm-watermark-lab.readthedocs.io"
+Repository = "https://github.com/terragon-labs/lm-watermark-lab"
+"Bug Tracker" = "https://github.com/terragon-labs/lm-watermark-lab/issues"
+
+[project.scripts]
+watermark-lab = "watermark_lab.cli:main"
+wml = "watermark_lab.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+watermark_lab = ["configs/*.yaml", "data/*.json"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["watermark_lab"]
+known_third_party = ["torch", "transformers", "numpy", "pandas", "fastapi"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "torch.*",
+    "transformers.*",
+    "datasets.*",
+    "evaluate.*",
+    "wandb.*",
+    "streamlit.*",
+    "plotly.*",
+    "seaborn.*",
+    "sklearn.*",
+    "scipy.*",
+    "nltk.*",
+    "spacy.*"
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src/watermark_lab",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=80"
+]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "gpu: marks tests that require GPU",
+    "api: marks tests for API endpoints",
+    "cli: marks tests for CLI functionality"
+]
+
+[tool.coverage.run]
+source = ["src/watermark_lab"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__init__.py",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/virtualenv/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:"
+]
+
+[tool.flake8]
+max-line-length = 88
+select = ["E", "W", "F"]
+ignore = [
+    "E203",  # whitespace before ':'
+    "E501",  # line too long (handled by black)
+    "W503",  # line break before binary operator
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".venv",
+    "venv",
+    ".mypy_cache",
+    ".pytest_cache"
+]
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".venv"]
+skips = ["B101", "B601"]
+
+[tool.semantic_release]
+version_variable = "src/watermark_lab/__init__.py:__version__"
+version_pattern = "pyproject.toml:version = \"{version}\""
+build_command = "pip install build && python -m build"
