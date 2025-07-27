@@ -1,0 +1,50 @@
+# Code Owners for LM Watermark Lab
+# This file defines who should review specific parts of the codebase
+
+# Default owners for everything in the repo
+* @terragon-labs/core-team
+
+# Security-sensitive files
+SECURITY.md @terragon-labs/security-team
+.github/workflows/security.yml @terragon-labs/security-team
+scripts/check_licenses.py @terragon-labs/security-team
+
+# CI/CD and DevOps
+.github/workflows/ @terragon-labs/devops-team
+docker-compose.yml @terragon-labs/devops-team
+Dockerfile @terragon-labs/devops-team
+k8s/ @terragon-labs/devops-team
+monitoring/ @terragon-labs/devops-team
+
+# Core watermarking algorithms
+src/watermark_lab/watermarking/ @terragon-labs/algorithms-team
+src/watermark_lab/detection/ @terragon-labs/algorithms-team
+
+# API and web services
+src/watermark_lab/api/ @terragon-labs/backend-team
+src/watermark_lab/dashboard/ @terragon-labs/frontend-team
+
+# Documentation
+docs/ @terragon-labs/docs-team
+*.md @terragon-labs/docs-team
+requirements.md @terragon-labs/product-team
+
+# Configuration and project setup
+pyproject.toml @terragon-labs/core-team
+setup.py @terragon-labs/core-team
+requirements*.txt @terragon-labs/core-team
+Makefile @terragon-labs/devops-team
+
+# Testing infrastructure
+tests/ @terragon-labs/qa-team
+.github/workflows/ci.yml @terragon-labs/qa-team @terragon-labs/devops-team
+
+# Research and evaluation
+src/watermark_lab/evaluation/ @terragon-labs/research-team
+src/watermark_lab/attacks/ @terragon-labs/research-team
+benchmarks/ @terragon-labs/research-team
+
+# Data and models
+data/ @terragon-labs/data-team
+scripts/download_models.py @terragon-labs/data-team
+scripts/prepare_datasets.py @terragon-labs/data-team

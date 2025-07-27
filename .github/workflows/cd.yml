@@ -1,0 +1,407 @@
+name: Continuous Deployment
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      force_deploy:
+        description: 'Force deployment (skip safety checks)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Determine deployment parameters
+  setup:
+    name: Setup Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      version: ${{ steps.version.outputs.version }}
+      should_deploy: ${{ steps.checks.outputs.should_deploy }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Determine environment
+      id: env
+      run: |
+        if [[ "${{ github.event_name }}" == "release" ]]; then
+          echo "environment=production" >> $GITHUB_OUTPUT
+        else
+          echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Extract version
+      id: version
+      run: |
+        if [[ "${{ github.event_name }}" == "release" ]]; then
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        else
+          echo "version=latest" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Deployment safety checks
+      id: checks
+      run: |
+        SHOULD_DEPLOY="true"
+        
+        # Check if this is a pre-release for production
+        if [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.prerelease }}" == "true" ]]; then
+          echo "⚠️ Pre-release detected, skipping production deployment"
+          SHOULD_DEPLOY="false"
+        fi
+        
+        # Check force deploy flag
+        if [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+          echo "🚀 Force deploy enabled, bypassing safety checks"
+          SHOULD_DEPLOY="true"
+        fi
+        
+        echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+
+  # Build and push production images
+  build:
+    name: Build Production Images
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.should_deploy == 'true'
+    
+    strategy:
+      matrix:
+        target: [production, gpu]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=tag
+          type=raw,value=${{ needs.setup.outputs.version }}
+          type=raw,value=latest,enable={{is_default_branch}}
+        flavor: |
+          suffix=-${{ matrix.target }}
+
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        target: ${{ matrix.target }}
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+        build-args: |
+          BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          VCS_REF=${{ github.sha }}
+          VERSION=${{ needs.setup.outputs.version }}
+
+  # Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+    if: needs.setup.outputs.should_deploy == 'true' && (needs.setup.outputs.environment == 'staging' || github.event_name == 'release')
+    environment:
+      name: staging
+      url: https://staging.watermark-lab.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Kubernetes tools
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to staging
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Update image tags in deployment
+        sed -i "s|IMAGE_TAG|${{ needs.setup.outputs.version }}|g" k8s/staging/deployment.yaml
+        
+        # Apply configurations
+        kubectl apply -f k8s/staging/
+        
+        # Wait for rollout
+        kubectl rollout status deployment/watermark-lab-app -n staging --timeout=300s
+
+    - name: Run smoke tests
+      run: |
+        # Wait for service to be ready
+        sleep 60
+        
+        # Basic health check
+        curl -f https://staging.watermark-lab.com/health
+        
+        # API smoke test
+        curl -f -X POST https://staging.watermark-lab.com/api/v1/generate \
+          -H "Content-Type: application/json" \
+          -d '{"method": "kirchenbauer", "prompts": ["test"], "config": {"gamma": 0.25}}'
+
+    - name: Notify staging deployment
+      run: |
+        echo "🚀 Successfully deployed to staging"
+        echo "Version: ${{ needs.setup.outputs.version }}"
+        echo "URL: https://staging.watermark-lab.com"
+
+  # Deploy to production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [setup, build, deploy-staging]
+    if: needs.setup.outputs.should_deploy == 'true' && needs.setup.outputs.environment == 'production' && github.event_name == 'release'
+    environment:
+      name: production
+      url: https://watermark-lab.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Kubernetes tools
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Pre-deployment checks
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Check cluster health
+        kubectl get nodes
+        kubectl get pods -n production
+        
+        # Verify current deployment
+        kubectl get deployment watermark-lab-app -n production
+
+    - name: Blue-Green Deployment
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Create green deployment
+        sed -i "s|IMAGE_TAG|${{ needs.setup.outputs.version }}|g" k8s/production/deployment-green.yaml
+        sed -i "s|DEPLOYMENT_NAME|watermark-lab-app-green|g" k8s/production/deployment-green.yaml
+        
+        kubectl apply -f k8s/production/deployment-green.yaml
+        
+        # Wait for green deployment
+        kubectl rollout status deployment/watermark-lab-app-green -n production --timeout=600s
+        
+        # Health check green deployment
+        GREEN_IP=$(kubectl get service watermark-lab-app-green -n production -o jsonpath='{.spec.clusterIP}')
+        kubectl run health-check --rm -i --image=curlimages/curl -- \
+          curl -f http://$GREEN_IP:8080/health
+
+    - name: Switch Traffic
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Update service selector to point to green
+        kubectl patch service watermark-lab-app -n production -p '{"spec":{"selector":{"version":"green"}}}'
+        
+        # Wait for traffic switch
+        sleep 30
+
+    - name: Production smoke tests
+      run: |
+        # Comprehensive production testing
+        curl -f https://watermark-lab.com/health
+        
+        # API functionality test
+        curl -f -X POST https://watermark-lab.com/api/v1/generate \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${{ secrets.PROD_API_TOKEN }}" \
+          -d '{"method": "kirchenbauer", "prompts": ["production test"], "config": {"gamma": 0.25}}'
+        
+        # Load test
+        ab -n 100 -c 10 https://watermark-lab.com/health
+
+    - name: Cleanup old deployment
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Remove blue deployment after successful switch
+        kubectl delete deployment watermark-lab-app-blue -n production --ignore-not-found=true
+        
+        # Rename green to blue for next deployment
+        kubectl patch deployment watermark-lab-app-green -n production -p '{"metadata":{"name":"watermark-lab-app-blue"}}'
+
+    - name: Notify production deployment
+      run: |
+        echo "🎉 Successfully deployed to production"
+        echo "Version: ${{ needs.setup.outputs.version }}"
+        echo "URL: https://watermark-lab.com"
+
+  # Publish to PyPI
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [setup, deploy-production]
+    if: github.event_name == 'release' && !github.event.release.prerelease
+    environment:
+      name: pypi
+      url: https://pypi.org/project/lm-watermark-lab/
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip build twine
+
+    - name: Build package
+      run: python -m build
+
+    - name: Check package
+      run: twine check dist/*
+
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: twine upload dist/*
+
+  # Update documentation
+  deploy-docs:
+    name: Deploy Documentation
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+    if: needs.setup.outputs.should_deploy == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[docs]"
+
+    - name: Build documentation
+      run: |
+        cd docs
+        make html
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/_build/html
+        cname: docs.watermark-lab.com
+
+  # Post-deployment tasks
+  post-deployment:
+    name: Post-deployment Tasks
+    runs-on: ubuntu-latest
+    needs: [setup, deploy-production, publish-pypi, deploy-docs]
+    if: always() && needs.setup.outputs.should_deploy == 'true'
+    
+    steps:
+    - name: Update monitoring dashboards
+      run: |
+        echo "📊 Updating monitoring dashboards for version ${{ needs.setup.outputs.version }}"
+        # Update Grafana dashboards, alerts, etc.
+
+    - name: Notify team
+      run: |
+        echo "📢 Deployment completed!"
+        echo "Environment: ${{ needs.setup.outputs.environment }}"
+        echo "Version: ${{ needs.setup.outputs.version }}"
+        echo "Status: ${{ job.status }}"
+
+    - name: Create deployment record
+      run: |
+        # Record deployment in tracking system
+        echo "Recording deployment in systems..."
+
+  # Rollback capability
+  rollback:
+    name: Emergency Rollback
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'release'
+    environment:
+      name: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Kubernetes tools
+      uses: azure/setup-kubectl@v3
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Rollback deployment
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Rollback to previous version
+        kubectl rollout undo deployment/watermark-lab-app -n production
+        
+        # Wait for rollback
+        kubectl rollout status deployment/watermark-lab-app -n production --timeout=300s
+
+    - name: Verify rollback
+      run: |
+        # Health check after rollback
+        curl -f https://watermark-lab.com/health
+        
+        echo "🔄 Rollback completed successfully"

@@ -1,0 +1,55 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Current File",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Python: pytest",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["tests/", "-v"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "API Server",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["src.watermark_lab.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8080"],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+    {
+      "name": "CLI Tool",
+      "type": "python",
+      "request": "launch",
+      "module": "watermark_lab.cli",
+      "args": ["--help"],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+    {
+      "name": "Jupyter Lab",
+      "type": "python",
+      "request": "launch",
+      "module": "jupyter",
+      "args": ["lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}

@@ -1,0 +1,259 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'lm-watermark-lab'
+    environment: 'production'
+
+rule_files:
+  - "rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Main application metrics
+  - job_name: 'watermark-lab-app'
+    static_configs:
+      - targets: ['app:9090']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  # Worker metrics
+  - job_name: 'watermark-lab-worker'
+    static_configs:
+      - targets: ['worker:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Redis metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # PostgreSQL metrics
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Node exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # cAdvisor for container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Nginx metrics
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:9113']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Blackbox exporter for external monitoring
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - http://app:8080/health
+        - http://app:8080/api/v1/status
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # Service discovery for Kubernetes (if deployed on k8s)
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - default
+            - watermark-lab
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+# Recording rules for performance optimization
+recording_rules:
+  - name: watermark_lab_aggregations
+    interval: 30s
+    rules:
+      # Request rate
+      - record: watermark_lab:request_rate_5m
+        expr: rate(http_requests_total[5m])
+      
+      # Error rate
+      - record: watermark_lab:error_rate_5m
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m])
+      
+      # P95 latency
+      - record: watermark_lab:request_duration_p95_5m
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+      
+      # Generation throughput
+      - record: watermark_lab:generation_throughput_5m
+        expr: rate(watermark_generations_total[5m])
+      
+      # Detection throughput
+      - record: watermark_lab:detection_throughput_5m
+        expr: rate(watermark_detections_total[5m])
+      
+      # Model loading frequency
+      - record: watermark_lab:model_loads_5m
+        expr: rate(model_loads_total[5m])
+      
+      # Cache hit rate
+      - record: watermark_lab:cache_hit_rate_5m
+        expr: rate(cache_hits_total[5m]) / rate(cache_requests_total[5m])
+
+# Alert rules
+alerting_rules:
+  - name: watermark_lab_alerts
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: watermark_lab:error_rate_5m > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: watermark-lab
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+      
+      # High latency
+      - alert: HighLatency
+        expr: watermark_lab:request_duration_p95_5m > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: watermark-lab
+        annotations:
+          summary: "High response latency detected"
+          description: "95th percentile latency is {{ $value }}s for the last 5 minutes"
+      
+      # Service down
+      - alert: ServiceDown
+        expr: up{job="watermark-lab-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: watermark-lab
+        annotations:
+          summary: "Watermark Lab service is down"
+          description: "The main application service has been down for more than 1 minute"
+      
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes{container="watermark-lab-app"} / container_spec_memory_limit_bytes) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: watermark-lab
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }} of limit"
+      
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{container="watermark-lab-app"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: watermark-lab
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value | humanizePercentage }}"
+      
+      # Redis down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute"
+      
+      # Database down
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "Database is down"
+          description: "PostgreSQL has been down for more than 1 minute"
+      
+      # Low cache hit rate
+      - alert: LowCacheHitRate
+        expr: watermark_lab:cache_hit_rate_5m < 0.7
+        for: 10m
+        labels:
+          severity: warning
+          service: watermark-lab
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+      
+      # Disk space warning
+      - alert: DiskSpaceWarning
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value | humanizePercentage }} full on {{ $labels.device }}"
