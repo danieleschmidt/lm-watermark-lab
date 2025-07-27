@@ -37,6 +37,12 @@ This pull request implements comprehensive SDLC automation for the LM Watermark 
 - Production, development, and testing container stages
 
 ### ✅ Phase 6: CI/CD Automation
+**Note**: Workflow files are provided in `docs/workflows/` due to GitHub App permissions. Use the setup script to activate:
+
+```bash
+./scripts/setup_workflows.sh
+```
+
 - **Continuous Integration** (ci.yml):
   - Code quality checks across Python 3.9-3.11
   - Comprehensive testing on multiple OS platforms
@@ -60,6 +66,9 @@ This pull request implements comprehensive SDLC automation for the LM Watermark 
   - Weekly comprehensive health checks
   - Monthly technical debt assessments
   - Automated dependency updates with security prioritization
+
+- **Security Scanning** (security.yml):
+  - Comprehensive security automation with multiple scanning tools
 
 ### ✅ Phase 7: Monitoring & Observability
 - **Comprehensive Health Checks**:
