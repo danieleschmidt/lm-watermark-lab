@@ -1,0 +1,253 @@
+groups:
+  - name: watermark_lab_alerts
+    rules:
+      # API Health Alerts
+      - alert: APIDown
+        expr: up{job="watermark-lab-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "Watermark Lab API is down"
+          description: "API has been down for more than 1 minute"
+
+      - alert: APIHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="watermark-lab-api"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High API latency"
+          description: "95th percentile latency is {{ $value }}s"
+
+      - alert: APIHighErrorRate
+        expr: rate(http_requests_total{job="watermark-lab-api",status=~"5.."}[5m]) / rate(http_requests_total{job="watermark-lab-api"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High API error rate"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+
+      # Resource Usage Alerts
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 90%"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is above 80% for more than 10 minutes"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is below 10%"
+
+      # Database Alerts
+      - alert: PostgreSQLDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database is not responding"
+
+      - alert: PostgreSQLTooManyConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Too many PostgreSQL connections"
+          description: "PostgreSQL has {{ $value }} active connections"
+
+      - alert: PostgreSQLHighQueryTime
+        expr: pg_stat_activity_max_tx_duration{state="active"} > 300
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Long running PostgreSQL query"
+          description: "Query running for {{ $value }}s"
+
+      # Redis Alerts
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache is not responding"
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is above 90%"
+
+      - alert: RedisSlowQuery
+        expr: redis_slowlog_length > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis slow queries detected"
+          description: "{{ $value }} slow queries in Redis"
+
+      # Application Specific Alerts
+      - alert: WatermarkGenerationSlow
+        expr: histogram_quantile(0.95, rate(watermark_generation_duration_seconds_bucket[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: watermarking
+        annotations:
+          summary: "Slow watermark generation"
+          description: "95th percentile generation time is {{ $value }}s"
+
+      - alert: DetectionAccuracyDrop
+        expr: watermark_detection_accuracy < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: detection
+        annotations:
+          summary: "Detection accuracy drop"
+          description: "Detection accuracy dropped to {{ $value | humanizePercentage }}"
+
+      - alert: ModelLoadingFailure
+        expr: increase(model_loading_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: models
+        annotations:
+          summary: "Model loading failures"
+          description: "{{ $value }} model loading failures in the last 5 minutes"
+
+      - alert: QueueBacklog
+        expr: celery_queue_length > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: queue
+        annotations:
+          summary: "High queue backlog"
+          description: "Queue has {{ $value }} pending tasks"
+
+      # Security Alerts
+      - alert: SuspiciousActivity
+        expr: increase(security_violations_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "{{ $value }} security violations in the last 5 minutes"
+
+      - alert: AuthenticationFailures
+        expr: increase(authentication_failures_total[5m]) > 20
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High authentication failure rate"
+          description: "{{ $value }} authentication failures in the last 5 minutes"
+
+      # GPU Alerts (if applicable)
+      - alert: GPUMemoryHigh
+        expr: nvidia_ml_py_gpu_memory_used_bytes / nvidia_ml_py_gpu_memory_total_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: gpu
+        annotations:
+          summary: "High GPU memory usage"
+          description: "GPU memory usage is above 90%"
+
+      - alert: GPUTemperatureHigh
+        expr: nvidia_ml_py_gpu_temp > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: gpu
+        annotations:
+          summary: "High GPU temperature"
+          description: "GPU temperature is {{ $value }}°C"
+
+  - name: watermark_lab_infrastructure
+    rules:
+      # Container Alerts
+      - alert: ContainerDown
+        expr: up{job=~".*watermark.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Container is down"
+          description: "Container {{ $labels.instance }} is down"
+
+      - alert: ContainerHighMemory
+        expr: container_memory_usage_bytes{container_label_com_docker_compose_service=~".*watermark.*"} / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Container high memory usage"
+          description: "Container {{ $labels.name }} memory usage is above 90%"
+
+      - alert: ContainerRestarting
+        expr: increase(container_restarts_total{container_label_com_docker_compose_service=~".*watermark.*"}[1h]) > 3
+        for: 1m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Container restarting frequently"
+          description: "Container {{ $labels.name }} restarted {{ $value }} times in the last hour"
+
+      # Network Alerts
+      - alert: NetworkLatencyHigh
+        expr: prometheus_notifications_latency_seconds > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: network
+        annotations:
+          summary: "High network latency"
+          description: "Network latency is {{ $value }}s"
