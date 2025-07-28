@@ -4,13 +4,19 @@ Due to GitHub App security restrictions, the workflow files need to be manually 
 
 ## Quick Setup
 
-The workflow files are already created in `.github/workflows/` but need to be committed manually:
+The workflow templates are located in `workflow-templates/` and need to be copied to `.github/workflows/`:
 
 ```bash
-# Add all workflow files
-git add .github/workflows/*.yml
+# Create workflows directory
+mkdir -p .github/workflows
 
-# Commit the workflows
+# Copy all workflow templates (remove .txt extension)
+for file in workflow-templates/*.yml.txt; do
+  cp "$file" ".github/workflows/$(basename "$file" .txt)"
+done
+
+# Add and commit workflows
+git add .github/workflows/
 git commit -m "feat: add comprehensive CI/CD workflows
 
 🚀 Complete GitHub Actions workflow suite:
@@ -30,6 +36,9 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
 # Push the workflows
 git push
+
+# Clean up templates (optional)
+rm -rf workflow-templates/
 ```
 
 ## Workflow Overview
