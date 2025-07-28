@@ -1,0 +1,62 @@
+{
+  "protection_rules": {
+    "main": {
+      "required_status_checks": {
+        "strict": true,
+        "contexts": [
+          "code-quality",
+          "test",
+          "build",
+          "docker-build",
+          "security-scan",
+          "dependency-review",
+          "container-security",
+          "api-contract-tests"
+        ]
+      },
+      "enforce_admins": false,
+      "required_pull_request_reviews": {
+        "required_approving_review_count": 2,
+        "dismiss_stale_reviews": true,
+        "require_code_owner_reviews": true,
+        "require_last_push_approval": true
+      },
+      "restrictions": null,
+      "allow_force_pushes": false,
+      "allow_deletions": false,
+      "block_creations": false,
+      "required_conversation_resolution": true,
+      "required_linear_history": false
+    },
+    "develop": {
+      "required_status_checks": {
+        "strict": true,
+        "contexts": [
+          "code-quality",
+          "test",
+          "build",
+          "security-scan"
+        ]
+      },
+      "enforce_admins": false,
+      "required_pull_request_reviews": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews": true,
+        "require_code_owner_reviews": false,
+        "require_last_push_approval": false
+      },
+      "restrictions": null,
+      "allow_force_pushes": false,
+      "allow_deletions": false,
+      "block_creations": false,
+      "required_conversation_resolution": true,
+      "required_linear_history": false
+    }
+  },
+  "setup_instructions": {
+    "description": "Branch protection rules configuration for the repository",
+    "note": "These rules should be applied via GitHub repository settings or GitHub API",
+    "api_endpoint": "https://api.github.com/repos/OWNER/REPO/branches/BRANCH/protection",
+    "required_permissions": "admin access to repository"
+  }
+}
