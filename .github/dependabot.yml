@@ -16,8 +16,35 @@ updates:
       - "dependencies"
       - "security"
     commit-message:
-      prefix: "chore"
+      prefix: "deps"
       include: "scope"
+    groups:
+      development-dependencies:
+        patterns:
+          - "pytest*"
+          - "black"
+          - "isort" 
+          - "flake8*"
+          - "mypy*"
+          - "pre-commit*"
+          - "bandit*"
+          - "safety*"
+          - "coverage*"
+          - "ruff*"
+      security-dependencies:
+        patterns:
+          - "cryptography*"
+          - "gitguardian*"
+          - "bandit*"
+          - "safety*"
+      ml-dependencies:
+        patterns:
+          - "torch*"
+          - "transformers*"
+          - "numpy*"
+          - "scipy*"
+          - "scikit-learn*"
+          - "datasets*"
     
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
