@@ -1,0 +1,41 @@
+# Code ownership and review requirements
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global ownership
+* @terragon-labs/maintainers
+
+# Core watermarking algorithms
+/src/watermark_lab/methods/ @terragon-labs/algorithms-team @terragon-labs/security-team
+
+# Detection and forensics
+/src/watermark_lab/detection/ @terragon-labs/detection-team
+/src/watermark_lab/forensics/ @terragon-labs/security-team
+
+# Attack implementations
+/src/watermark_lab/attacks/ @terragon-labs/security-team @terragon-labs/research-team
+
+# API and infrastructure
+/src/watermark_lab/api/ @terragon-labs/backend-team
+/src/watermark_lab/cli/ @terragon-labs/backend-team
+
+# Configuration and deployment
+/docker-compose*.yml @terragon-labs/devops-team
+/Dockerfile @terragon-labs/devops-team
+/monitoring/ @terragon-labs/devops-team
+/.github/ @terragon-labs/devops-team
+
+# Documentation
+/docs/ @terragon-labs/docs-team @terragon-labs/maintainers
+README.md @terragon-labs/docs-team @terragon-labs/maintainers
+
+# Security and compliance
+SECURITY.md @terragon-labs/security-team
+.pre-commit-config.yaml @terragon-labs/security-team
+pyproject.toml @terragon-labs/maintainers
+
+# Testing
+/tests/ @terragon-labs/qa-team @terragon-labs/maintainers
+
+# Release management
+CHANGELOG.md @terragon-labs/maintainers
+pyproject.toml @terragon-labs/maintainers

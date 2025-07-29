@@ -1,0 +1,115 @@
+name: Bug Report
+description: Create a report to help us improve
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please fill out the information below to help us diagnose and fix the issue.
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Import watermark_lab
+        2. Create watermarker with '...'
+        3. Generate text with '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: Describe what you expected...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: A clear and concise description of what actually happened.
+      placeholder: Describe what actually happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        Please provide information about your environment:
+      value: |
+        - OS: [e.g. Ubuntu 20.04, macOS 12.0, Windows 10]
+        - Python version: [e.g. 3.9.7]
+        - watermark-lab version: [e.g. 1.0.0]
+        - PyTorch version: [e.g. 1.12.0]
+        - CUDA version (if applicable): [e.g. 11.3]
+    validations:
+      required: true
+
+  - type: textarea
+    id: code-sample
+    attributes:
+      label: Code Sample
+      description: |
+        Please provide a minimal code sample that reproduces the issue.
+        This will be formatted as Python code.
+      render: python
+      placeholder: |
+        from watermark_lab import WatermarkFactory
+        
+        # Your code here that reproduces the bug
+    validations:
+      required: false
+
+  - type: textarea
+    id: error-traceback
+    attributes:
+      label: Error Traceback
+      description: If applicable, provide the full error traceback
+      render: shell
+      placeholder: Paste the full error traceback here...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here.
+      placeholder: Any additional information that might be helpful...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched for existing issues that may be the same as this one
+          required: true
+        - label: I have provided a clear and concise description of the bug
+          required: true
+        - label: I have provided steps to reproduce the issue
+          required: true
+        - label: I have provided information about my environment
+          required: true
