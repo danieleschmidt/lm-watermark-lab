@@ -1,0 +1,291 @@
+# Performance Profiling Configuration
+# Advanced profiling setup for watermark lab performance analysis
+
+profiling:
+  # Global profiling settings
+  enabled: true
+  auto_profile: true
+  profile_threshold: 1.0  # seconds
+  max_profile_size: 100MB
+  
+  # Output configuration
+  output:
+    directory: "performance/profiles"
+    format: ["cprofile", "py-spy", "memray"]
+    compression: true
+    retention_days: 30
+  
+  # Profiling targets
+  targets:
+    generation:
+      enabled: true
+      methods:
+        - "kirchenbauer"
+        - "markllm"
+        - "aaronson"
+      text_lengths: [100, 500, 1000, 5000]
+      batch_sizes: [1, 4, 8, 16]
+      
+    detection:
+      enabled: true
+      methods:
+        - "statistical"
+        - "neural"
+        - "multi_watermark"
+      sample_sizes: [10, 50, 100, 500]
+      
+    api_endpoints:
+      enabled: true
+      endpoints:
+        - "/generate"
+        - "/detect"
+        - "/batch_detect"
+        - "/analyze"
+      concurrent_users: [1, 10, 50, 100]
+      
+    attacks:
+      enabled: true
+      types:
+        - "paraphrase"
+        - "truncation"
+        - "adversarial"
+      intensities: ["light", "medium", "heavy"]
+
+  # Memory profiling
+  memory:
+    enabled: true
+    track_allocations: true
+    leak_detection: true
+    heap_profiling: true
+    tools:
+      - "memray"
+      - "tracemalloc"
+      - "pympler"
+      
+  # CPU profiling  
+  cpu:
+    enabled: true
+    statistical_profiling: true
+    deterministic_profiling: true
+    flame_graphs: true
+    tools:
+      - "py-spy"
+      - "cProfile"
+      - "line_profiler"
+      
+  # GPU profiling (if available)
+  gpu:
+    enabled: true
+    memory_tracking: true
+    kernel_profiling: true
+    tools:
+      - "nvidia-ml"
+      - "torch_profiler"
+      
+  # I/O profiling
+  io:
+    enabled: true
+    file_operations: true
+    network_operations: true
+    database_operations: true
+
+# Benchmarking configuration
+benchmarking:
+  # Benchmark suites
+  suites:
+    generation_speed:
+      description: "Text generation performance benchmarks"
+      iterations: 100
+      warmup_iterations: 10
+      
+    detection_accuracy:
+      description: "Detection accuracy vs speed trade-offs"
+      sample_size: 1000
+      confidence_level: 0.95
+      
+    memory_efficiency:
+      description: "Memory usage optimization benchmarks"
+      max_memory_mb: 4096
+      gc_stress_test: true
+      
+    concurrent_performance:
+      description: "Multi-user concurrent performance"
+      max_concurrent_users: 100
+      ramp_up_time: 60
+      test_duration: 300
+
+  # Performance thresholds
+  thresholds:
+    generation:
+      tokens_per_second: 50
+      max_memory_mb: 2048
+      max_latency_ms: 5000
+      
+    detection:
+      samples_per_second: 100
+      max_memory_mb: 1024
+      max_latency_ms: 1000
+      
+    api:
+      requests_per_second: 10
+      p95_latency_ms: 2000
+      error_rate_percent: 1.0
+
+# Monitoring and alerting
+monitoring:
+  # Metrics collection
+  metrics:
+    - name: "generation_latency"
+      type: "histogram"
+      description: "Time to generate watermarked text"
+      
+    - name: "detection_latency"
+      type: "histogram" 
+      description: "Time to detect watermarks"
+      
+    - name: "memory_usage"
+      type: "gauge"
+      description: "Memory consumption"
+      
+    - name: "gpu_utilization"
+      type: "gauge"
+      description: "GPU utilization percentage"
+      
+    - name: "throughput"
+      type: "counter"
+      description: "Operations per second"
+      
+    - name: "error_rate"
+      type: "counter"
+      description: "Error rate per operation"
+
+  # Alerting rules
+  alerts:
+    - name: "high_latency"
+      condition: "generation_latency > 10s"
+      severity: "warning"
+      
+    - name: "memory_leak"
+      condition: "memory_usage increase > 100MB/hour"
+      severity: "critical"
+      
+    - name: "low_throughput"
+      condition: "throughput < 10 ops/min"
+      severity: "warning"
+      
+    - name: "high_error_rate"
+      condition: "error_rate > 5%"
+      severity: "critical"
+
+# Optimization targets
+optimization:
+  # Automatic optimization
+  auto_optimize: true
+  optimization_goals:
+    - "minimize_latency"
+    - "minimize_memory"
+    - "maximize_throughput"
+    
+  # Optimization techniques
+  techniques:
+    caching:
+      enabled: true
+      strategy: "lru"
+      max_size: "1GB"
+      
+    batching:
+      enabled: true
+      max_batch_size: 32
+      timeout_ms: 100
+      
+    model_optimization:
+      enabled: true
+      techniques:
+        - "quantization" 
+        - "pruning"
+        - "distillation"
+        
+    parallel_processing:
+      enabled: true
+      max_workers: 4
+      strategy: "thread_pool"
+
+# Reporting
+reporting:
+  # Report generation
+  enabled: true
+  formats: ["html", "json", "pdf"]
+  frequency: "daily"
+  
+  # Report content
+  sections:
+    - "executive_summary"
+    - "performance_trends"
+    - "bottleneck_analysis"
+    - "optimization_recommendations"
+    - "comparative_analysis"
+    - "resource_utilization"
+    
+  # Distribution
+  distribution:
+    email:
+      enabled: false
+      recipients: []
+      
+    slack:
+      enabled: false
+      webhook_url: ""
+      
+    dashboard:
+      enabled: true
+      url: "http://localhost:3000/performance"
+
+# Integration with external tools
+integrations:
+  # APM tools
+  datadog:
+    enabled: false
+    api_key: ""
+    
+  new_relic:
+    enabled: false
+    license_key: ""
+    
+  # Observability
+  jaeger:
+    enabled: false
+    endpoint: "http://localhost:14268"
+    
+  prometheus:
+    enabled: true
+    endpoint: "http://localhost:9090"
+    pushgateway: "http://localhost:9091"
+    
+  grafana:
+    enabled: true
+    endpoint: "http://localhost:3000"
+    
+  # Load testing
+  locust:
+    enabled: true
+    web_port: 8089
+    
+  k6:
+    enabled: false
+    
+# Development and testing
+development:
+  # Local profiling
+  local_profiling: true
+  profile_on_startup: false
+  continuous_profiling: false
+  
+  # Testing
+  performance_tests: true
+  regression_tests: true
+  load_tests: true
+  
+  # Debugging
+  debug_mode: false
+  verbose_logging: true
+  trace_calls: false

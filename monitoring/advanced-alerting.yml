@@ -1,0 +1,423 @@
+# Advanced Alerting Configuration for LM Watermark Lab
+# Comprehensive monitoring and alerting setup for production environments
+
+# Prometheus Alerting Rules
+groups:
+- name: watermark_lab_performance
+  rules:
+  # Generation Performance Alerts
+  - alert: HighGenerationLatency
+    expr: histogram_quantile(0.95, rate(watermark_generation_duration_seconds_bucket[5m])) > 5
+    for: 2m
+    labels:
+      severity: warning
+      service: watermark-generation
+      team: algorithms
+    annotations:
+      summary: "High watermark generation latency"
+      description: "95th percentile generation latency is {{ $value }}s, above 5s threshold"
+      runbook_url: "https://docs.company.com/runbooks/high-generation-latency"
+      
+  - alert: GenerationFailureRate
+    expr: rate(watermark_generation_errors_total[5m]) / rate(watermark_generation_requests_total[5m]) > 0.05
+    for: 1m
+    labels:
+      severity: critical
+      service: watermark-generation
+      team: algorithms
+    annotations:
+      summary: "High generation failure rate"
+      description: "Generation error rate is {{ $value | humanizePercentage }}, above 5% threshold"
+      
+  # Detection Performance Alerts  
+  - alert: HighDetectionLatency
+    expr: histogram_quantile(0.95, rate(watermark_detection_duration_seconds_bucket[5m])) > 1
+    for: 2m
+    labels:
+      severity: warning
+      service: watermark-detection
+      team: algorithms
+    annotations:
+      summary: "High watermark detection latency"
+      description: "95th percentile detection latency is {{ $value }}s, above 1s threshold"
+      
+  - alert: DetectionAccuracyDrop
+    expr: watermark_detection_accuracy < 0.9
+    for: 5m
+    labels:
+      severity: critical
+      service: watermark-detection
+      team: algorithms
+    annotations:
+      summary: "Detection accuracy dropped below threshold"
+      description: "Detection accuracy is {{ $value | humanizePercentage }}, below 90% threshold"
+
+- name: watermark_lab_resources
+  rules:
+  # Memory Alerts
+  - alert: HighMemoryUsage
+    expr: process_resident_memory_bytes / 1024 / 1024 / 1024 > 4
+    for: 3m
+    labels:
+      severity: warning
+      service: watermark-lab
+      team: platform
+    annotations:
+      summary: "High memory usage"
+      description: "Process memory usage is {{ $value }}GB, above 4GB threshold"
+      
+  - alert: MemoryLeak
+    expr: increase(process_resident_memory_bytes[1h]) > 1073741824  # 1GB increase per hour
+    for: 0m
+    labels:
+      severity: critical
+      service: watermark-lab
+      team: platform
+    annotations:
+      summary: "Potential memory leak detected"
+      description: "Memory usage increased by {{ $value | humanizeBytes }} in the last hour"
+      
+  # CPU Alerts
+  - alert: HighCPUUsage
+    expr: process_cpu_seconds_total > 0.8
+    for: 5m
+    labels:
+      severity: warning
+      service: watermark-lab
+      team: platform
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage is {{ $value | humanizePercentage }}, above 80% threshold"
+      
+  # GPU Alerts (if applicable)
+  - alert: GPUMemoryExhaustion
+    expr: nvidia_gpu_memory_used_bytes / nvidia_gpu_memory_total_bytes > 0.9
+    for: 2m
+    labels:
+      severity: critical
+      service: watermark-lab
+      team: platform
+    annotations:
+      summary: "GPU memory near exhaustion"
+      description: "GPU memory usage is {{ $value | humanizePercentage }}, above 90% threshold"
+
+- name: watermark_lab_api
+  rules:
+  # API Performance Alerts
+  - alert: HighAPILatency
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="watermark-api"}[5m])) > 2
+    for: 2m
+    labels:
+      severity: warning
+      service: watermark-api
+      team: backend
+    annotations:
+      summary: "High API response latency"
+      description: "95th percentile API latency is {{ $value }}s, above 2s threshold"
+      
+  - alert: APIErrorRate
+    expr: rate(http_requests_total{job="watermark-api",status=~"5.."}[5m]) / rate(http_requests_total{job="watermark-api"}[5m]) > 0.01
+    for: 1m
+    labels:
+      severity: critical
+      service: watermark-api
+      team: backend
+    annotations:
+      summary: "High API error rate"
+      description: "API error rate is {{ $value | humanizePercentage }}, above 1% threshold"
+      
+  - alert: LowAPIThroughput
+    expr: rate(http_requests_total{job="watermark-api"}[5m]) < 10
+    for: 5m
+    labels:
+      severity: warning
+      service: watermark-api
+      team: backend
+    annotations:
+      summary: "Low API throughput"
+      description: "API request rate is {{ $value }} requests/second, below 10 RPS threshold"
+
+- name: watermark_lab_dependencies
+  rules:
+  # Database Alerts
+  - alert: DatabaseConnectionFailure
+    expr: up{job="redis"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: redis
+      team: platform
+    annotations:
+      summary: "Database connection failure"
+      description: "Cannot connect to Redis database"
+      
+  - alert: HighDatabaseLatency
+    expr: redis_command_duration_seconds{command="get"} > 0.1
+    for: 2m
+    labels:
+      severity: warning
+      service: redis
+      team: platform
+    annotations:
+      summary: "High database latency"
+      description: "Redis GET command latency is {{ $value }}s, above 100ms threshold"
+      
+  # Model Loading Alerts
+  - alert: ModelLoadingFailure
+    expr: increase(model_loading_errors_total[5m]) > 0
+    for: 0m
+    labels:
+      severity: critical
+      service: watermark-lab
+      team: algorithms
+    annotations:
+      summary: "Model loading failure"
+      description: "{{ $value }} model loading errors in the last 5 minutes"
+      
+  - alert: ModelLoadingLatency
+    expr: histogram_quantile(0.95, rate(model_loading_duration_seconds_bucket[10m])) > 30
+    for: 0m
+    labels:
+      severity: warning
+      service: watermark-lab
+      team: algorithms
+    annotations:
+      summary: "Slow model loading"
+      description: "95th percentile model loading time is {{ $value }}s, above 30s threshold"
+
+- name: watermark_lab_security
+  rules:
+  # Security Alerts
+  - alert: UnauthorizedAPIAccess
+    expr: rate(http_requests_total{job="watermark-api",status="401"}[5m]) > 1
+    for: 1m
+    labels:
+      severity: warning
+      service: watermark-api
+      team: security
+    annotations:
+      summary: "High rate of unauthorized API access attempts"
+      description: "{{ $value }} unauthorized requests per second detected"
+      
+  - alert: SuspiciousRequestPattern
+    expr: rate(http_requests_total{job="watermark-api"}[1m]) > 100
+    for: 30s
+    labels:
+      severity: critical
+      service: watermark-api
+      team: security
+    annotations:
+      summary: "Suspicious request pattern detected"
+      description: "Request rate of {{ $value }} RPS may indicate DDoS attack"
+      
+  - alert: WatermarkBypass
+    expr: watermark_bypass_attempts_total > 0
+    for: 0m
+    labels:
+      severity: critical
+      service: watermark-detection
+      team: security
+    annotations:
+      summary: "Watermark bypass attempt detected"
+      description: "{{ $value }} watermark bypass attempts detected"
+
+- name: watermark_lab_business
+  rules:
+  # Business Logic Alerts
+  - alert: LowWatermarkDetectionRate
+    expr: watermark_detection_rate < 0.95
+    for: 10m
+    labels:
+      severity: warning
+      service: watermark-detection
+      team: algorithms
+    annotations:
+      summary: "Low watermark detection rate"
+      description: "Detection rate is {{ $value | humanizePercentage }}, below 95% expected rate"
+      
+  - alert: UnusualWatermarkPatterns
+    expr: stddev_over_time(watermark_generation_requests_total[1h]) > 100
+    for: 0m
+    labels:
+      severity: info
+      service: watermark-generation
+      team: data-science
+    annotations:
+      summary: "Unusual watermark generation patterns"
+      description: "High variance in generation requests: {{ $value }}"
+      
+  - alert: DataQualityIssue
+    expr: watermark_quality_score < 0.8
+    for: 5m
+    labels:
+      severity: warning
+      service: watermark-generation
+      team: algorithms
+    annotations:
+      summary: "Watermark quality degradation"
+      description: "Average quality score is {{ $value }}, below 0.8 threshold"
+
+# Grafana Alerting Rules (JSON format for import)
+grafana_alerts:
+  - uid: "watermark_lab_alerts"
+    title: "Watermark Lab Alerts"
+    condition: "A"
+    data:
+      - refId: "A"
+        queryType: ""
+        relativeTimeRange:
+          from: 300
+          to: 0
+        model:
+          expr: "up{job=\"watermark-lab\"}"
+          intervalMs: 1000
+          maxDataPoints: 43200
+    intervalSeconds: 60
+    noDataState: "NoData"
+    execErrState: "Alerting" 
+    for: "5m"
+    annotations:
+      summary: "Service availability alert"
+      runbook_url: "https://docs.company.com/runbooks/service-down"
+    labels:
+      team: "platform"
+      severity: "critical"
+
+# Alert Routing Configuration
+route:
+  group_by: ['alertname', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+  routes:
+  - match:
+      severity: critical
+    receiver: 'critical-alerts'
+    group_wait: 5s
+    repeat_interval: 5m
+    
+  - match:
+      team: security
+    receiver: 'security-team'
+    group_wait: 0s
+    repeat_interval: 1m
+    
+  - match:
+      team: algorithms
+    receiver: 'algorithms-team'
+    
+  - match:
+      team: platform
+    receiver: 'platform-team'
+
+# Alert Receivers/Notification Channels
+receivers:
+- name: 'default'
+  slack_configs:
+  - api_url: '{{ .SlackWebhookURL }}'
+    channel: '#watermark-lab-alerts'
+    title: 'Alert: {{ .GroupLabels.alertname }}'
+    text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+    
+- name: 'critical-alerts'
+  slack_configs:
+  - api_url: '{{ .SlackWebhookURL }}'
+    channel: '#critical-alerts'
+    title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+    text: '{{ range .Alerts }}{{ .Annotations.summary }}\nDescription: {{ .Annotations.description }}{{ end }}'
+  pagerduty_configs:
+  - routing_key: '{{ .PagerDutyKey }}'
+    description: '{{ .GroupLabels.alertname }}: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+    
+- name: 'security-team'
+  slack_configs:
+  - api_url: '{{ .SlackWebhookURL }}'
+    channel: '#security-alerts'
+    title: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+    text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+  email_configs:
+  - to: 'security-team@company.com'
+    subject: 'Security Alert: {{ .GroupLabels.alertname }}'
+    body: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    
+- name: 'algorithms-team'
+  slack_configs:
+  - api_url: '{{ .SlackWebhookURL }}'
+    channel: '#algorithms-alerts'
+    title: '🧠 Algorithm Alert: {{ .GroupLabels.alertname }}'
+    
+- name: 'platform-team'
+  slack_configs:
+  - api_url: '{{ .SlackWebhookURL }}'
+    channel: '#platform-alerts'
+    title: '⚙️ Platform Alert: {{ .GroupLabels.alertname }}'
+
+# Inhibit Rules (prevent duplicate alerts)
+inhibit_rules:
+- source_match:
+    severity: 'critical'
+  target_match:
+    severity: 'warning'
+  equal: ['alertname', 'service']
+  
+- source_match:
+    alertname: 'APIErrorRate'
+  target_match:
+    alertname: 'HighAPILatency'
+  equal: ['service']
+
+# Alert Templates
+templates:
+- '/etc/alertmanager/templates/*.tmpl'
+
+# Custom Alert Templates
+alert_templates:
+  slack_title: |
+    {{ if eq .Status "firing" }}🔥{{ else }}✅{{ end }} 
+    {{ .GroupLabels.severity | upper }}: {{ .GroupLabels.alertname }}
+    
+  slack_text: |
+    {{ range .Alerts }}
+    *Summary:* {{ .Annotations.summary }}
+    {{ if .Annotations.description }}*Description:* {{ .Annotations.description }}{{ end }}
+    {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+    *Service:* {{ .Labels.service }}
+    *Started:* {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+    {{ end }}
+    
+  email_subject: |
+    [{{ .GroupLabels.severity | upper }}] {{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}
+    
+  email_body: |
+    Alert Details:
+    {{ range .Alerts }}
+    - Summary: {{ .Annotations.summary }}
+    - Description: {{ .Annotations.description }}
+    - Service: {{ .Labels.service }}
+    - Team: {{ .Labels.team }}
+    - Started: {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+    - Labels: {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}
+    {{ end }}
+
+# Health Check Configuration
+health_check:
+  enabled: true
+  port: 9093
+  path: /health
+  
+# Logging Configuration  
+logging:
+  level: info
+  format: json
+  
+# Retention Configuration
+retention:
+  alerts: 120h  # 5 days
+  notifications: 24h
+
+# Rate Limiting
+rate_limiting:
+  enabled: true
+  max_alerts_per_minute: 100
+  max_notifications_per_minute: 50
