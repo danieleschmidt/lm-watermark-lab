@@ -1,0 +1,73 @@
+# Grype configuration for vulnerability scanning
+# See: https://github.com/anchore/grype
+
+# Output configuration
+output: "table"
+
+# Fail on severity level
+fail-on-severity: "medium"
+
+# Ignored vulnerabilities (with justification)
+ignore:
+  # Development dependencies
+  - vulnerability: "GHSA-xxxx-xxxx-xxxx"
+    fix-state: "wont-fix"
+    reason: "development dependency only"
+    
+  # Base image vulnerabilities we can't control
+  - vulnerability: "CVE-2021-44228"
+    package:
+      name: "log4j-core"
+    reason: "Not used in Python application"
+
+# Database configuration
+db:
+  cache-dir: ".grype"
+  update-url: "https://toolbox-data.anchore.io/grype/databases/listing.json"
+  ca-cert: ""
+  auto-update: true
+  validate-by-hash-on-start: false
+  max-allowed-built-age: "120h"
+
+# Registry configuration
+registry:
+  insecure-skip-tls-verify: false
+  insecure-use-http: false
+  auth: []
+
+# Logging
+log:
+  structured: false
+  level: "error"
+  file: ""
+
+# Check for application update
+check-for-app-update: true
+
+# Output formatting
+output-template-file: ""
+
+# Show suppressed matches
+show-suppressed: false
+
+# Search configuration
+search:
+  unindexed-archives: false
+  scope: "squashed"
+
+# Match configuration  
+match:
+  java:
+    using-cpes: true
+  dotnet:
+    using-cpes: true
+  javascript:
+    using-cpes: false
+  python:
+    using-cpes: true
+  ruby:
+    using-cpes: true
+  rust:
+    using-cpes: true
+  stock:
+    using-cpes: true

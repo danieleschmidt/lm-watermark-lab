@@ -1,0 +1,58 @@
+# Syft configuration for SBOM generation
+# See: https://github.com/anchore/syft
+
+# Output format for SBOM
+output: 
+  - "spdx-json=./sbom.spdx.json"
+  - "cyclonedx-json=./sbom.cyclonedx.json"
+  - "syft-json=./sbom.syft.json"
+
+# What to include in SBOM
+catalogers:
+  enabled:
+    - python-pip-requirements
+    - python-package
+    - python-setup-py
+    - pip
+    - python-wheel
+    - python-egg-info
+    - python-installed-package
+
+# Package selection
+package:
+  cataloger:
+    enabled: true
+    scope: "all-layers"
+  
+# File cataloging
+file:
+  metadata:
+    cataloger:
+      enabled: true
+    digests:
+      - "sha256"
+  content:
+    cataloger:
+      enabled: false
+
+# Secrets scanning integration
+secrets:
+  additional-patterns: {}
+  exclude-pattern-names: []
+  reveal-values: false
+  skip-files-above-size: 1048576
+
+# Registry authentication (if needed)
+registry:
+  insecure-skip-tls-verify: false
+  insecure-use-http: false
+  auth: []
+
+# Logging configuration
+log:
+  structured: false
+  level: "warn"
+  file: ""
+
+# Check for application update on start up
+check-for-app-update: true

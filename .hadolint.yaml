@@ -1,0 +1,39 @@
+# Hadolint configuration for Dockerfile linting
+# See: https://github.com/hadolint/hadolint
+
+failure-threshold: error
+
+override:
+  error:
+    - DL3008  # Pin versions in apt get install
+    - DL3009  # Delete apt-get lists after installing
+    - DL3015  # Avoid additional packages
+    - DL4006  # Set SHELL option -o pipefail
+  warning:
+    - DL3007  # Using latest tag
+    - DL3020  # Use COPY instead of ADD
+  info:
+    - DL3059  # Multiple consecutive RUN instructions
+
+ignored:
+  - DL1001  # Test comment - allow for documentation
+  - SC2046  # Shell check rule - allow word splitting
+
+format: json
+
+no-color: false
+
+# Trusted registries for base images
+trusted-registries:
+  - docker.io
+  - gcr.io
+  - registry.access.redhat.com
+  - mcr.microsoft.com
+  - public.ecr.aws
+
+# Label schema validation
+label-schema: 
+  author: required
+  version: required
+  description: optional
+  source: optional
