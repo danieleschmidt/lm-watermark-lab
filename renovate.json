@@ -1,0 +1,72 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    "security:openssf-scorecard",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":automergeDigest",
+    ":automergeBranch"
+  ],
+  "packageRules": [
+    {
+      "description": "Group Python dependencies",
+      "matchManagers": ["pip_requirements", "pipenv", "poetry", "setup-cfg"],
+      "groupName": "python dependencies",
+      "schedule": ["before 6am on Monday"]
+    },
+    {
+      "description": "Auto-merge security updates",
+      "matchUpdateTypes": ["security"],
+      "automerge": true,
+      "platformAutomerge": true
+    },
+    {
+      "description": "Auto-merge patch updates for dev dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "digest"],
+      "automerge": true,
+      "platformAutomerge": true
+    },
+    {
+      "description": "Separate major updates",
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["major-update"],
+      "schedule": ["before 6am on the first day of the month"]
+    },
+    {
+      "description": "Security updates get priority",
+      "matchUpdateTypes": ["security"],
+      "addLabels": ["security"],
+      "prPriority": 10
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "addLabels": ["security", "vulnerability"],
+    "assignees": ["@terragon-labs/security-team"]
+  },
+  "osvVulnerabilityAlerts": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on Sunday"]
+  },
+  "prHourlyLimit": 2,
+  "prConcurrentLimit": 10,
+  "branchConcurrentLimit": 10,
+  "labels": ["dependencies", "renovate"],
+  "reviewers": ["@terragon-labs/maintainers"],
+  "schedule": ["before 10am every weekday"],
+  "timezone": "UTC",
+  "commitMessagePrefix": "chore(deps):",
+  "rebaseWhen": "conflicted",
+  "platformAutomerge": false,
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/test/**",
+    "**/tests/**"
+  ]
+}

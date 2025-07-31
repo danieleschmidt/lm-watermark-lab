@@ -1,0 +1,18 @@
+# Trivy ignore file for container security scanning
+# See: https://aquasecurity.github.io/trivy/latest/docs/vulnerability/examples/filter/
+
+# Ignore development-only vulnerabilities
+CVE-2021-44228  # Log4j - not used in production Python app
+CVE-2022-23648  # Development dependency issue
+
+# Ignore base image vulnerabilities that can't be fixed
+# Update these regularly and remove when patches available
+# CVE-YYYY-NNNNN  # Description and justification
+
+# Ignore specific paths for development
+/opt/venv/lib/python*/site-packages/jupyter*
+/opt/venv/lib/python*/site-packages/notebook*
+
+# Temporary ignores - review monthly
+# Add expiration date in comments
+# CVE-2023-XXXXX  # Expires: 2024-03-01 - Waiting for upstream fix

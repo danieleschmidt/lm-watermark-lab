@@ -1,0 +1,15 @@
+# This file would contain the public key for Cosign container signing
+# Repository maintainers should generate a proper key pair for production use:
+# cosign generate-key-pair
+
+# For development and CI setup, see:
+# - https://docs.sigstore.dev/cosign/overview/
+# - docs/SECURITY.md for signing setup instructions
+
+# Example public key format (replace with actual key):
+# -----BEGIN PUBLIC KEY-----
+# [Base64 encoded public key content]
+# -----END PUBLIC KEY-----
+
+# DO NOT commit private keys to the repository
+# Store cosign.key securely in GitHub Secrets or similar

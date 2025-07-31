@@ -1,0 +1,12 @@
+# Funding configuration for open source sustainability
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+# GitHub Sponsors
+github: [terragon-labs]
+
+# Open Collective
+open_collective: terragon-labs
+
+# Other funding platforms
+patreon: terragon-labs
+custom: ["https://www.terragonlabs.com/sponsor", "https://buy-me-a-coffee.com/terragon-labs"]
