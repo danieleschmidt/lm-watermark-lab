@@ -1,0 +1,84 @@
+{
+  "test_prompts": [
+    "The future of artificial intelligence is",
+    "Write a story about a robot who",
+    "Explain the concept of machine learning",
+    "In the year 2050, technology will",
+    "The benefits of renewable energy include"
+  ],
+  
+  "clean_texts": [
+    "The quick brown fox jumps over the lazy dog. This is a simple sentence for testing purposes.",
+    "Machine learning is a subset of artificial intelligence that enables computers to learn without being explicitly programmed.",
+    "Climate change represents one of the most pressing challenges of our time, requiring coordinated global action.",
+    "The development of renewable energy technologies has accelerated rapidly in recent years, driven by environmental concerns and economic factors.",
+    "Natural language processing allows computers to understand, interpret, and generate human language in a valuable way."
+  ],
+  
+  "potentially_watermarked": [
+    "The advancement of artificial intelligence technologies has been remarkable in recent years, with significant breakthroughs in machine learning algorithms.",
+    "Sustainable development requires a careful balance between economic growth, social equity, and environmental protection for future generations.",
+    "The integration of blockchain technology into various industries has opened new possibilities for secure and transparent transactions.",
+    "Quantum computing represents a paradigm shift in computational power, potentially revolutionizing fields from cryptography to drug discovery.",
+    "The democratization of information through the internet has fundamentally changed how we access, share, and process knowledge."
+  ],
+  
+  "short_texts": [
+    "Hello world!",
+    "Test message",
+    "AI is powerful",
+    "Simple example",
+    "Quick test"
+  ],
+  
+  "long_texts": [
+    "In the rapidly evolving landscape of artificial intelligence and machine learning, researchers and practitioners are continuously pushing the boundaries of what's possible with computational intelligence. From natural language processing that can understand and generate human-like text, to computer vision systems that can identify objects and scenes with superhuman accuracy, to reinforcement learning algorithms that can master complex games and control systems, the applications of AI are becoming increasingly sophisticated and ubiquitous. As these technologies mature, questions about their impact on society, employment, privacy, and human autonomy become increasingly important. The development of robust, fair, and interpretable AI systems is crucial for ensuring that these powerful tools benefit humanity while minimizing potential risks and unintended consequences.",
+    
+    "The transition to renewable energy sources represents one of the most significant technological and economic shifts of the 21st century. Solar photovoltaic technology has seen dramatic cost reductions, making it competitive with fossil fuels in many markets. Wind energy continues to expand both onshore and offshore, with larger, more efficient turbines being developed. Energy storage solutions, particularly battery technology, are advancing rapidly to address the intermittency challenges associated with renewable sources. Smart grid technologies are enabling better integration of distributed energy resources and demand response programs. The electrification of transportation through electric vehicles is creating new opportunities for grid integration and energy storage. Government policies, corporate commitments, and investor preferences are all aligning to accelerate the clean energy transition, creating unprecedented opportunities for innovation and economic growth in the renewable energy sector."
+  ],
+  
+  "multilingual_texts": [
+    "Hello, world! Bonjour le monde! Hola mundo! 你好世界! مرحبا بالعالم! Привет мир!",
+    "Technology is universal. La technologie est universelle. La tecnología es universal. 技術是普遍的。",
+    "Machine learning algorithms can process text in multiple languages simultaneously."
+  ],
+  
+  "special_character_texts": [
+    "Text with émojis 🤖🔬💻 and special characters!",
+    "Mathematical symbols: α, β, γ, π, Σ, ∫, ∆, ∇",
+    "Currency symbols: $, €, ¥, £, ₹, ¢, ₿",
+    "Punctuation test: Hello... world?! (Are you there?) [Yes] {No} <Maybe>",
+    "Unicode test: ñ, ç, ü, ß, æ, ø, å, ł, ż, ś"
+  ],
+  
+  "edge_case_texts": [
+    "",
+    " ",
+    "\n\n\n",
+    "a",
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " * 100,
+    "1234567890",
+    "!@#$%^&*()",
+    "        Leading and trailing spaces        "
+  ],
+  
+  "domain_specific": {
+    "scientific": [
+      "The double helix structure of DNA was first described by Watson and Crick in 1953.",
+      "Quantum entanglement is a physical phenomenon that occurs when particles interact in ways such that the quantum state of each particle cannot be described independently.",
+      "The CRISPR-Cas9 system has revolutionized genetic engineering by providing a precise method for editing DNA sequences."
+    ],
+    
+    "technical": [
+      "The implementation of the neural network architecture utilizes convolutional layers followed by batch normalization and ReLU activation functions.",
+      "The distributed system employs a microservices architecture with containerized applications orchestrated using Kubernetes.",
+      "The algorithm's time complexity is O(n log n) while maintaining O(1) space complexity through in-place operations."
+    ],
+    
+    "creative": [
+      "The old lighthouse stood sentinel against the storm, its beacon cutting through the darkness like hope through despair.",
+      "In the garden of possibilities, every seed of imagination can bloom into reality with proper care and nurturing.",
+      "The melody danced on the wind, carrying with it the memories of countless summers and the promise of springs yet to come."
+    ]
+  }
+}
