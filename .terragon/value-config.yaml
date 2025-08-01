@@ -1,0 +1,54 @@
+scoring:
+  weights:
+    # Advanced repository - focus on optimization and technical debt
+    advanced:
+      wsjf: 0.5          # Weighted Shortest Job First
+      ice: 0.1           # Impact Confidence Ease
+      technicalDebt: 0.3 # Technical debt reduction priority
+      security: 0.1      # Security improvements
+
+  thresholds:
+    minScore: 15           # Minimum composite score for execution
+    maxRisk: 0.7           # Maximum risk tolerance
+    securityBoost: 2.0     # Security vulnerability boost factor
+    complianceBoost: 1.8   # Compliance requirement boost factor
+
+discovery:
+  sources:
+    - gitHistory           # Git commit analysis for TODO/FIXME
+    - staticAnalysis       # Code quality and complexity analysis
+    - dependencyAudit      # Vulnerability and update scanning
+    - performanceProfile   # Performance bottleneck detection
+    - codeChurn           # File change frequency analysis
+    
+  tools:
+    staticAnalysis:
+      - ruff               # Python linting and formatting
+      - mypy               # Type checking
+      - bandit             # Security analysis
+      - vulture            # Dead code detection
+    security:
+      - safety             # Dependency vulnerability scanning
+      - pip-audit          # Python package auditing
+      - semgrep            # Code pattern analysis
+    performance:
+      - py-spy             # Python profiling
+      - memory-profiler    # Memory usage analysis
+
+execution:
+  maxConcurrentTasks: 1
+  testRequirements:
+    minCoverage: 80
+    performanceRegression: 10    # Max 10% performance regression
+    lintingPassed: true
+    typeCheckPassed: true
+  rollbackTriggers:
+    - testFailure
+    - buildFailure
+    - securityViolation
+    - performanceRegression
+
+maturityLevel: "advanced"
+repositoryType: "python-ml-research"
+primaryLanguage: "python"
+framework: "pytorch-transformers"
