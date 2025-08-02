@@ -1,0 +1,161 @@
+# OpenTelemetry Collector Configuration
+# Provides distributed tracing and advanced observability
+
+receivers:
+  # OTLP receiver for traces, metrics, and logs
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Prometheus receiver for scraping metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'watermark-lab-otel'
+          static_configs:
+            - targets: ['app:8080']
+          metrics_path: /metrics
+          scrape_interval: 15s
+
+  # Host metrics
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+      load: {}
+      disk: {}
+      filesystem: {}
+      network: {}
+      process:
+        mute_process_name_error: true
+
+  # Container metrics
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 30s
+    timeout: 5s
+    api_version: 1.40
+
+processors:
+  # Batch processor for performance
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    limit_mib: 512
+    spike_limit_mib: 128
+    check_interval: 5s
+
+  # Resource processor for adding metadata
+  resource:
+    attributes:
+      - key: service.name
+        value: watermark-lab
+        action: upsert
+      - key: service.version
+        value: ${VERSION}
+        action: upsert
+      - key: deployment.environment
+        value: ${ENVIRONMENT}
+        action: upsert
+
+  # Sampling processor for traces
+  probabilistic_sampler:
+    hash_seed: 22
+    sampling_percentage: 20
+
+  # Attributes processor for filtering
+  attributes:
+    actions:
+      - key: http.user_agent
+        action: delete
+      - key: net.peer.ip
+        action: hash
+
+exporters:
+  # Prometheus exporter
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: watermark_lab
+    const_labels:
+      service: watermark-lab
+
+  # OTLP exporter for external systems
+  otlp:
+    endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+    headers:
+      authorization: Bearer ${OTEL_EXPORTER_OTLP_TOKEN}
+
+  # Jaeger exporter for tracing
+  jaeger:
+    endpoint: jaeger:14250
+    tls:
+      insecure: true
+
+  # Logging exporter for debugging
+  logging:
+    loglevel: info
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+  # File exporter for backup
+  file:
+    path: /tmp/otel-data.json
+
+extensions:
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+  # pprof extension for profiling
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+  # zpages extension for debugging
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  
+  pipelines:
+    # Traces pipeline
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource, probabilistic_sampler, attributes]
+      exporters: [jaeger, logging]
+
+    # Metrics pipeline
+    metrics:
+      receivers: [otlp, prometheus, hostmetrics, docker_stats]
+      processors: [memory_limiter, batch, resource]
+      exporters: [prometheus, logging]
+
+    # Logs pipeline
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [logging, file]
+
+  # Telemetry configuration
+  telemetry:
+    logs:
+      level: "info"
+      development: false
+      encoding: "json"
+    metrics:
+      address: 0.0.0.0:8888
+      level: "detailed"

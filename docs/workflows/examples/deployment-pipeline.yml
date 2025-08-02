@@ -1,0 +1,357 @@
+# Advanced Deployment Pipeline
+# Handles staging and production deployments with rollback capabilities
+# Copy to .github/workflows/ when ready to use
+
+name: Deployment Pipeline
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      version:
+        description: 'Version to deploy (leave empty for latest)'
+        required: false
+        type: string
+      force_deploy:
+        description: 'Force deployment even if health checks fail'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || 'production' }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  prepare:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      version: ${{ steps.version.outputs.version }}
+      image-tag: ${{ steps.version.outputs.image-tag }}
+      deployment-url: ${{ steps.env.outputs.deployment-url }}
+    
+    steps:
+    - name: Determine environment
+      id: env
+      run: |
+        if [[ "${{ github.event_name }}" == "release" ]]; then
+          echo "environment=production" >> $GITHUB_OUTPUT
+          echo "deployment-url=https://watermark-lab.terragon.ai" >> $GITHUB_OUTPUT
+        else
+          echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event.inputs.environment }}" == "staging" ]]; then
+            echo "deployment-url=https://staging.watermark-lab.terragon.ai" >> $GITHUB_OUTPUT
+          else
+            echo "deployment-url=https://watermark-lab.terragon.ai" >> $GITHUB_OUTPUT
+          fi
+        fi
+
+    - name: Determine version
+      id: version
+      run: |
+        if [[ "${{ github.event_name }}" == "release" ]]; then
+          VERSION=${{ github.event.release.tag_name }}
+        elif [[ -n "${{ github.event.inputs.version }}" ]]; then
+          VERSION=${{ github.event.inputs.version }}
+        else
+          VERSION="main-${{ github.sha }}"
+        fi
+        
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "image-tag=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}" >> $GITHUB_OUTPUT
+
+  # Pre-deployment validation
+  validate:
+    name: Pre-deployment Validation
+    runs-on: ubuntu-latest
+    needs: prepare
+    environment: 
+      name: ${{ needs.prepare.outputs.environment }}-validation
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Validate container image exists
+      run: |
+        docker manifest inspect ${{ needs.prepare.outputs.image-tag }} || {
+          echo "❌ Container image not found: ${{ needs.prepare.outputs.image-tag }}"
+          exit 1
+        }
+
+    - name: Run security scan on deployment image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ needs.prepare.outputs.image-tag }}
+        format: 'table'
+        exit-code: '1'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Validate deployment configuration
+      run: |
+        # Validate Kubernetes manifests
+        if [[ -f "k8s/${{ needs.prepare.outputs.environment }}/deployment.yaml" ]]; then
+          kubectl --dry-run=client apply -f k8s/${{ needs.prepare.outputs.environment }}/
+        fi
+        
+        # Validate docker-compose for simpler deployments
+        if [[ -f "docker-compose.prod.yml" ]]; then
+          docker-compose -f docker-compose.prod.yml config
+        fi
+
+  # Staging deployment
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [prepare, validate]
+    if: needs.prepare.outputs.environment == 'staging'
+    environment:
+      name: staging
+      url: ${{ needs.prepare.outputs.deployment-url }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Deploy to staging
+      run: |
+        echo "🚀 Deploying ${{ needs.prepare.outputs.version }} to staging..."
+        
+        # Example deployment using docker-compose
+        export IMAGE_TAG="${{ needs.prepare.outputs.image-tag }}"
+        export ENVIRONMENT="staging"
+        
+        # Update staging environment
+        docker-compose -f docker-compose.staging.yml pull
+        docker-compose -f docker-compose.staging.yml up -d
+        
+        echo "✅ Staging deployment completed"
+
+    - name: Run staging health checks
+      run: |
+        echo "🔍 Running health checks..."
+        
+        # Wait for service to start
+        sleep 30
+        
+        # Health check endpoint
+        for i in {1..10}; do
+          if curl -f ${{ needs.prepare.outputs.deployment-url }}/health; then
+            echo "✅ Health check passed"
+            break
+          fi
+          echo "⏳ Waiting for service to be ready... ($i/10)"
+          sleep 30
+        done
+
+    - name: Run staging smoke tests
+      run: |
+        echo "🧪 Running smoke tests..."
+        
+        # Basic functionality tests
+        curl -f ${{ needs.prepare.outputs.deployment-url }}/api/v1/status
+        
+        # Test key endpoints
+        curl -X POST ${{ needs.prepare.outputs.deployment-url }}/api/v1/generate \
+          -H "Content-Type: application/json" \
+          -d '{"method": "test", "prompts": ["test"], "config": {}}' || true
+        
+        echo "✅ Smoke tests completed"
+
+  # Production deployment
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [prepare, validate]
+    if: needs.prepare.outputs.environment == 'production'
+    environment:
+      name: production
+      url: ${{ needs.prepare.outputs.deployment-url }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Create deployment backup
+      run: |
+        echo "💾 Creating deployment backup..."
+        
+        # Backup current deployment
+        kubectl get deployment watermark-lab -o yaml > deployment-backup.yaml || true
+        
+        # Backup database if needed
+        # pg_dump watermark_lab > db-backup-$(date +%Y%m%d-%H%M%S).sql
+
+    - name: Deploy to production
+      run: |
+        echo "🚀 Deploying ${{ needs.prepare.outputs.version }} to production..."
+        
+        # Blue-green deployment strategy
+        export IMAGE_TAG="${{ needs.prepare.outputs.image-tag }}"
+        export ENVIRONMENT="production"
+        
+        # Deploy new version
+        kubectl set image deployment/watermark-lab \
+          app=${{ needs.prepare.outputs.image-tag }}
+        
+        # Wait for rollout
+        kubectl rollout status deployment/watermark-lab --timeout=600s
+        
+        echo "✅ Production deployment completed"
+
+    - name: Run production health checks
+      run: |
+        echo "🔍 Running production health checks..."
+        
+        # Comprehensive health checks
+        for i in {1..15}; do
+          if curl -f ${{ needs.prepare.outputs.deployment-url }}/health; then
+            echo "✅ Health check passed"
+            break
+          fi
+          echo "⏳ Waiting for service to be ready... ($i/15)"
+          sleep 20
+        done
+        
+        # Additional production checks
+        curl -f ${{ needs.prepare.outputs.deployment-url }}/api/v1/status
+        curl -f ${{ needs.prepare.outputs.deployment-url }}/metrics
+
+    - name: Run production smoke tests
+      run: |
+        echo "🧪 Running production smoke tests..."
+        
+        # Critical path testing
+        python scripts/production_smoke_tests.py --url ${{ needs.prepare.outputs.deployment-url }}
+        
+        echo "✅ Production smoke tests passed"
+
+  # Post-deployment monitoring
+  monitor:
+    name: Post-deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: [prepare, deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+    
+    steps:
+    - name: Monitor deployment health
+      run: |
+        echo "📊 Starting post-deployment monitoring..."
+        
+        # Monitor for 10 minutes
+        for i in {1..20}; do
+          if ! curl -f ${{ needs.prepare.outputs.deployment-url }}/health; then
+            echo "❌ Health check failed at $(date)"
+            exit 1
+          fi
+          echo "⏳ Monitoring... ($i/20)"
+          sleep 30
+        done
+        
+        echo "✅ Deployment is stable"
+
+    - name: Update deployment status
+      run: |
+        # Update deployment tracking
+        echo "📝 Recording deployment: ${{ needs.prepare.outputs.version }} to ${{ needs.prepare.outputs.environment }}"
+        
+        # Could integrate with deployment tracking system
+        # api call to record deployment
+        
+        echo "✅ Deployment recorded"
+
+  # Rollback job (manual trigger only)
+  rollback:
+    name: Emergency Rollback
+    runs-on: ubuntu-latest
+    if: failure() && !github.event.inputs.force_deploy
+    needs: [prepare, deploy-production]
+    environment:
+      name: production-rollback
+    
+    steps:
+    - name: Rollback production deployment
+      run: |
+        echo "🚨 Initiating emergency rollback..."
+        
+        # Rollback to previous version
+        kubectl rollout undo deployment/watermark-lab
+        
+        # Wait for rollback to complete
+        kubectl rollout status deployment/watermark-lab --timeout=300s
+        
+        echo "✅ Rollback completed"
+
+    - name: Verify rollback
+      run: |
+        echo "🔍 Verifying rollback..."
+        
+        # Health checks after rollback
+        sleep 30
+        curl -f ${{ needs.prepare.outputs.deployment-url }}/health
+        
+        echo "✅ Rollback verified"
+
+  # Notification
+  notify:
+    name: Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [prepare, deploy-staging, deploy-production, monitor, rollback]
+    if: always()
+    
+    steps:
+    - name: Determine overall status
+      id: status
+      run: |
+        if [[ "${{ needs.deploy-production.result }}" == "success" && "${{ needs.monitor.result }}" == "success" ]]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "message=✅ Deployment successful" >> $GITHUB_OUTPUT
+        elif [[ "${{ needs.rollback.result }}" == "success" ]]; then
+          echo "status=rollback" >> $GITHUB_OUTPUT
+          echo "message=🔄 Deployment rolled back successfully" >> $GITHUB_OUTPUT
+        else
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "message=❌ Deployment failed" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Send Slack notification
+      uses: 8398a7/action-slack@v3
+      with:
+        status: custom
+        custom_payload: |
+          {
+            text: "${{ steps.status.outputs.message }}",
+            attachments: [{
+              color: "${{ steps.status.outputs.status == 'success' && 'good' || 'danger' }}",
+              fields: [{
+                title: "Environment",
+                value: "${{ needs.prepare.outputs.environment }}",
+                short: true
+              }, {
+                title: "Version",
+                value: "${{ needs.prepare.outputs.version }}",
+                short: true
+              }, {
+                title: "URL",
+                value: "${{ needs.prepare.outputs.deployment-url }}",
+                short: false
+              }]
+            }]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
