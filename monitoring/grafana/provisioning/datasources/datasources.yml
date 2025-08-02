@@ -1,0 +1,116 @@
+# Grafana Datasource Provisioning Configuration
+
+apiVersion: 1
+
+datasources:
+  # Prometheus datasource
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: POST
+      queryTimeout: 60s
+      timeInterval: 15s
+    secureJsonData: {}
+
+  # Jaeger datasource for tracing
+  - name: Jaeger
+    type: jaeger
+    uid: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    isDefault: false
+    editable: true
+    jsonData:
+      tracesToLogs:
+        datasourceUid: loki
+        tags: ['job', 'instance', 'pod', 'namespace']
+        mappedTags:
+          - key: service.name
+            value: job
+        mapTagNamesEnabled: false
+        spanStartTimeShift: 1h
+        spanEndTimeShift: 1h
+        filterByTraceID: false
+        filterBySpanID: false
+    secureJsonData: {}
+
+  # Loki datasource for logs (if using)
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: false
+    editable: true
+    jsonData:
+      derivedFields:
+        - datasourceUid: jaeger
+          matcherRegex: "trace_id=(\\w+)"
+          name: TraceID
+          url: "$${__value.raw}"
+    secureJsonData: {}
+
+  # PostgreSQL datasource for application data
+  - name: PostgreSQL
+    type: postgres
+    uid: postgres
+    access: proxy
+    url: postgres:5432
+    database: watermark_lab
+    user: ${POSTGRES_USER}
+    isDefault: false
+    editable: true
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 10
+      maxIdleConns: 10
+      connMaxLifetime: 14400
+      postgresVersion: 1500
+      timescaledb: false
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+
+  # Redis datasource for cache metrics
+  - name: Redis
+    type: redis-datasource
+    uid: redis
+    access: proxy
+    url: redis:6379
+    isDefault: false
+    editable: true
+    jsonData:
+      client: standalone
+      poolSize: 5
+      timeout: 10
+      pingInterval: 0
+      pipelineWindow: 0
+    secureJsonData: {}
+
+  # InfluxDB datasource (if using for time series)
+  - name: InfluxDB
+    type: influxdb
+    uid: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    database: watermark_lab
+    user: ${INFLUXDB_USER}
+    isDefault: false
+    editable: true
+    jsonData:
+      httpMode: GET
+      keepLastValue: false
+    secureJsonData:
+      password: ${INFLUXDB_PASSWORD}
+
+  # TestData datasource for testing
+  - name: TestData
+    type: testdata
+    uid: testdata
+    access: proxy
+    isDefault: false
+    editable: true

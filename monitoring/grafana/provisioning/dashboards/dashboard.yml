@@ -1,0 +1,46 @@
+# Grafana Dashboard Provisioning Configuration
+
+apiVersion: 1
+
+providers:
+  # Dashboard provider for watermark lab
+  - name: 'watermark-lab-dashboards'
+    orgId: 1
+    folder: 'Watermark Lab'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: true
+
+  # System dashboards
+  - name: 'system-dashboards'
+    orgId: 1
+    folder: 'System'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards/system
+
+  # Application dashboards
+  - name: 'application-dashboards'
+    orgId: 1
+    folder: 'Application'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards/application
+
+  # Infrastructure dashboards
+  - name: 'infrastructure-dashboards'
+    orgId: 1
+    folder: 'Infrastructure'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards/infrastructure
