@@ -2,7 +2,7 @@
 # Optimized for security, performance, and minimal size
 
 # Build stage
-FROM python:3.11-slim as builder
+FROM python:3.13-slim as builder
 
 # Set build arguments
 ARG BUILDPLATFORM
@@ -43,7 +43,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip wheel --no-cache-dir --no-deps --wheel-dir /build/wheels dist/*.whl
 
 # Production stage
-FROM python:3.11-slim as production
+FROM python:3.13-slim as production
 
 # Security: Create non-root user
 RUN groupadd -r watermarklab && useradd -r -g watermarklab -d /app -s /bin/bash watermarklab
