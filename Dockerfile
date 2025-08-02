@@ -139,7 +139,7 @@ USER watermarklab
 CMD ["pytest", "tests/", "-v", "--cov=src/watermark_lab"]
 
 # GPU-enabled stage
-FROM nvidia/cuda:11.8-runtime-ubuntu22.04 as gpu
+FROM nvidia/cuda:12.9.1-runtime-ubuntu22.04 as gpu
 
 # Install Python
 RUN apt-get update && apt-get install -y \
