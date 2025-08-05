@@ -1,0 +1,41 @@
+{
+  "watermark.generation.success": "Filigrane généré avec succès",
+  "watermark.generation.failed": "Échec de la génération du filigrane",
+  "watermark.detection.success": "Détection de filigrane terminée",
+  "watermark.detection.failed": "Échec de la détection du filigrane",
+  "watermark.detection.positive": "Filigrane détecté",
+  "watermark.detection.negative": "Aucun filigrane détecté",
+  
+  "validation.text.empty": "Le texte ne peut pas être vide",
+  "validation.text.too_long": "Le texte dépasse la longueur maximale de {max_length} caractères",
+  "validation.text.too_short": "Le texte doit contenir au moins {min_length} caractères",
+  "validation.config.invalid": "Configuration invalide fournie",
+  "validation.method.unknown": "Méthode de filigrane inconnue : {method}",
+  
+  "api.request.invalid": "Format de requête invalide",
+  "api.response.success": "Requête traitée avec succès",
+  "api.response.error": "Échec du traitement de la requête",
+  "api.rate_limit.exceeded": "Limite de débit dépassée. Veuillez réessayer plus tard",
+  
+  "cli.command.success": "Commande exécutée avec succès",
+  "cli.command.failed": "Échec de l'exécution de la commande",
+  "cli.help.description": "LM Watermark Lab - Boîte à outils complète pour le filigrane LLM",
+  
+  "processing.started": "Traitement démarré",
+  "processing.completed": "Traitement terminé en {duration:.2f} secondes",
+  "processing.failed": "Échec du traitement : {error}",
+  "processing.cancelled": "Traitement annulé par l'utilisateur",
+  
+  "compliance.gdpr.consent_required": "Consentement RGPD requis pour le traitement des données",
+  "compliance.ccpa.opt_out_honored": "Demande d'exclusion CCPA respectée",
+  "compliance.pdpa.notice_provided": "Avis de confidentialité PDPA fourni",
+  
+  "system.ready": "Système prêt",
+  "system.maintenance": "Système en maintenance",
+  "system.overloaded": "Système surchargé, veuillez réessayer plus tard",
+  "system.healthy": "Tous les systèmes opérationnels",
+  
+  "ui.welcome": "Bienvenue dans LM Watermark Lab",
+  "ui.goodbye": "Merci d'avoir utilisé LM Watermark Lab",
+  "ui.help": "Tapez 'help' pour les commandes disponibles"
+}

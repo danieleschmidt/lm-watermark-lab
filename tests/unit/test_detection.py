@@ -5,64 +5,8 @@ from unittest.mock import MagicMock, patch
 from typing import Dict, Any, List
 import numpy as np
 
-# Mock imports for non-existent modules
-try:
-    from watermark_lab.detection.base import BaseDetector
-    from watermark_lab.detection.statistical import StatisticalDetector
-    from watermark_lab.detection.neural import NeuralDetector
-    from watermark_lab.detection.multi import MultiWatermarkDetector
-    from watermark_lab.detection.result import DetectionResult
-except ImportError:
-    # Create mock classes for testing structure
-    class DetectionResult:
-        def __init__(self, is_watermarked: bool, confidence: float, p_value: float, 
-                     method: str, details: Dict[str, Any] = None):
-            self.is_watermarked = is_watermarked
-            self.confidence = confidence
-            self.p_value = p_value
-            self.method = method
-            self.details = details or {}
-    
-    class BaseDetector:
-        def __init__(self, config: Dict[str, Any]):
-            self.config = config
-        
-        def detect(self, text: str) -> DetectionResult:
-            # Mock detection logic
-            return DetectionResult(
-                is_watermarked=len(text) % 2 == 0,
-                confidence=0.8,
-                p_value=0.05,
-                method="base"
-            )
-        
-        def detect_batch(self, texts: List[str]) -> List[DetectionResult]:
-            return [self.detect(text) for text in texts]
-    
-    class StatisticalDetector(BaseDetector):
-        def __init__(self, config: Dict[str, Any], test_type: str = "multinomial"):
-            super().__init__(config)
-            self.test_type = test_type
-    
-    class NeuralDetector(BaseDetector):
-        def __init__(self, model_path: str = None):
-            super().__init__({})
-            self.model_path = model_path
-    
-    class MultiWatermarkDetector:
-        def __init__(self):
-            self.detectors = {}
-        
-        def register(self, name: str, detector: BaseDetector):
-            self.detectors[name] = detector
-        
-        def identify_watermark(self, text: str) -> DetectionResult:
-            return DetectionResult(
-                is_watermarked=True,
-                confidence=0.9,
-                p_value=0.01,
-                method="multi"
-            )
+from src.watermark_lab.core.detector import WatermarkDetector, DetectionResult
+from src.watermark_lab.core.factory import WatermarkFactory
 
 
 class TestDetectionResult:

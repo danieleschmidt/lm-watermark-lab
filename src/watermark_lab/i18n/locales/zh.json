@@ -1,0 +1,41 @@
+{
+  "watermark.generation.success": "水印生成成功",
+  "watermark.generation.failed": "水印生成失败",
+  "watermark.detection.success": "水印检测完成",
+  "watermark.detection.failed": "水印检测失败",
+  "watermark.detection.positive": "检测到水印",
+  "watermark.detection.negative": "未检测到水印",
+  
+  "validation.text.empty": "文本不能为空",
+  "validation.text.too_long": "文本超过最大长度 {max_length} 个字符",
+  "validation.text.too_short": "文本必须至少包含 {min_length} 个字符",
+  "validation.config.invalid": "提供的配置无效",
+  "validation.method.unknown": "未知的水印方法: {method}",
+  
+  "api.request.invalid": "请求格式无效",
+  "api.response.success": "请求处理成功",
+  "api.response.error": "请求处理失败",
+  "api.rate_limit.exceeded": "超出速率限制。请稍后重试",
+  
+  "cli.command.success": "命令执行成功",
+  "cli.command.failed": "命令执行失败",
+  "cli.help.description": "LM Watermark Lab - LLM水印综合工具包",
+  
+  "processing.started": "处理开始",
+  "processing.completed": "处理在 {duration:.2f} 秒内完成",
+  "processing.failed": "处理失败: {error}",
+  "processing.cancelled": "用户取消处理",
+  
+  "compliance.gdpr.consent_required": "数据处理需要GDPR同意",
+  "compliance.ccpa.opt_out_honored": "CCPA退出请求已处理",
+  "compliance.pdpa.notice_provided": "已提供PDPA隐私通知",
+  
+  "system.ready": "系统就绪",
+  "system.maintenance": "系统维护中",
+  "system.overloaded": "系统过载，请稍后重试",
+  "system.healthy": "所有系统正常运行",
+  
+  "ui.welcome": "欢迎使用LM Watermark Lab",
+  "ui.goodbye": "感谢使用LM Watermark Lab",
+  "ui.help": "输入'help'查看可用命令"
+}

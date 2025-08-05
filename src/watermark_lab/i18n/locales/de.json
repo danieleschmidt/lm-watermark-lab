@@ -1,0 +1,41 @@
+{
+  "watermark.generation.success": "Wasserzeichen erfolgreich generiert",
+  "watermark.generation.failed": "Fehler beim Generieren des Wasserzeichens",
+  "watermark.detection.success": "Wasserzeichen-Erkennung abgeschlossen",
+  "watermark.detection.failed": "Fehler beim Erkennen des Wasserzeichens",
+  "watermark.detection.positive": "Wasserzeichen erkannt",
+  "watermark.detection.negative": "Kein Wasserzeichen erkannt",
+  
+  "validation.text.empty": "Text darf nicht leer sein",
+  "validation.text.too_long": "Text überschreitet die maximale Länge von {max_length} Zeichen",
+  "validation.text.too_short": "Text muss mindestens {min_length} Zeichen haben",
+  "validation.config.invalid": "Ungültige Konfiguration bereitgestellt",
+  "validation.method.unknown": "Unbekannte Wasserzeichen-Methode: {method}",
+  
+  "api.request.invalid": "Ungültiges Anforderungsformat",
+  "api.response.success": "Anfrage erfolgreich verarbeitet",
+  "api.response.error": "Fehler beim Verarbeiten der Anfrage",
+  "api.rate_limit.exceeded": "Ratenlimit überschritten. Versuchen Sie es später erneut",
+  
+  "cli.command.success": "Befehl erfolgreich ausgeführt",
+  "cli.command.failed": "Fehler bei der Befehlsausführung",
+  "cli.help.description": "LM Watermark Lab - Umfassendes Toolkit für LLM-Wasserzeichen",
+  
+  "processing.started": "Verarbeitung gestartet",
+  "processing.completed": "Verarbeitung in {duration:.2f} Sekunden abgeschlossen",
+  "processing.failed": "Verarbeitung fehlgeschlagen: {error}",
+  "processing.cancelled": "Verarbeitung vom Benutzer abgebrochen",
+  
+  "compliance.gdpr.consent_required": "DSGVO-Einwilligung für Datenverarbeitung erforderlich",
+  "compliance.ccpa.opt_out_honored": "CCPA-Opt-out-Anfrage respektiert",
+  "compliance.pdpa.notice_provided": "PDPA-Datenschutzhinweis bereitgestellt",
+  
+  "system.ready": "System bereit",
+  "system.maintenance": "System in Wartung",
+  "system.overloaded": "System überlastet, versuchen Sie es später erneut",
+  "system.healthy": "Alle Systeme betriebsbereit",
+  
+  "ui.welcome": "Willkommen bei LM Watermark Lab",
+  "ui.goodbye": "Danke für die Nutzung von LM Watermark Lab",
+  "ui.help": "Geben Sie 'help' für verfügbare Befehle ein"
+}
