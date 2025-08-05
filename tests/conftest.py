@@ -7,8 +7,19 @@ from typing import Dict, Generator, Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-import torch
-from fastapi.testclient import TestClient
+try:
+    import torch
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    torch = None
+
+try:
+    from fastapi.testclient import TestClient
+    HAS_FASTAPI = True
+except ImportError:
+    HAS_FASTAPI = False
+    TestClient = None
 
 # Test configuration
 os.environ["TESTING"] = "1"
@@ -134,6 +145,9 @@ def detection_results():
 @pytest.fixture
 def api_client() -> Generator[TestClient, None, None]:
     """FastAPI test client."""
+    if not HAS_FASTAPI:
+        pytest.skip("FastAPI not available")
+    
     # Import here to avoid circular imports during test collection
     try:
         from watermark_lab.api.main import app
@@ -173,6 +187,11 @@ def wandb_mock():
 @pytest.fixture(autouse=True)
 def mock_torch_models():
     """Mock torch model loading to avoid downloading during tests."""
+    if not HAS_TORCH:
+        # Skip torch mocking if torch is not available
+        yield None
+        return
+    
     with patch('torch.load') as mock_load, \
          patch('transformers.AutoModel.from_pretrained') as mock_model, \
          patch('transformers.AutoTokenizer.from_pretrained') as mock_tokenizer:
@@ -199,6 +218,8 @@ def mock_torch_models():
 @pytest.fixture
 def gpu_available() -> bool:
     """Check if GPU is available for testing."""
+    if not HAS_TORCH:
+        return False
     return torch.cuda.is_available()
 
 

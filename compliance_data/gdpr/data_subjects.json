@@ -1,0 +1,20 @@
+{
+  "user123": {
+    "subject_id": "user123",
+    "email": "test@example.com",
+    "jurisdiction": "EU",
+    "consent_date": "2025-08-05T18:21:44.936986",
+    "consent_status": "granted",
+    "data_retention_period": 365,
+    "opt_out_date": null
+  },
+  "prod_test_user": {
+    "subject_id": "prod_test_user",
+    "email": null,
+    "jurisdiction": "EU",
+    "consent_date": "2025-08-05T18:25:18.992445",
+    "consent_status": "granted",
+    "data_retention_period": 365,
+    "opt_out_date": null
+  }
+}

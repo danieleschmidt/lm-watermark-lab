@@ -1,0 +1,41 @@
+{
+  "watermark.generation.success": "Marca de agua generada exitosamente",
+  "watermark.generation.failed": "Error al generar marca de agua",
+  "watermark.detection.success": "Detección de marca de agua completada",
+  "watermark.detection.failed": "Error al detectar marca de agua",
+  "watermark.detection.positive": "Marca de agua detectada",
+  "watermark.detection.negative": "No se detectó marca de agua",
+  
+  "validation.text.empty": "El texto no puede estar vacío",
+  "validation.text.too_long": "El texto excede la longitud máxima de {max_length} caracteres",
+  "validation.text.too_short": "El texto debe tener al menos {min_length} caracteres",
+  "validation.config.invalid": "Configuración inválida proporcionada",
+  "validation.method.unknown": "Método de marca de agua desconocido: {method}",
+  
+  "api.request.invalid": "Formato de solicitud inválido",
+  "api.response.success": "Solicitud procesada exitosamente",
+  "api.response.error": "Error al procesar la solicitud",
+  "api.rate_limit.exceeded": "Límite de velocidad excedido. Inténtelo de nuevo más tarde",
+  
+  "cli.command.success": "Comando ejecutado exitosamente",
+  "cli.command.failed": "Error en la ejecución del comando",
+  "cli.help.description": "LM Watermark Lab - Kit de herramientas integral para marcas de agua LLM",
+  
+  "processing.started": "Procesamiento iniciado",
+  "processing.completed": "Procesamiento completado en {duration:.2f} segundos",
+  "processing.failed": "Error en el procesamiento: {error}",
+  "processing.cancelled": "Procesamiento cancelado por el usuario",
+  
+  "compliance.gdpr.consent_required": "Se requiere consentimiento GDPR para el procesamiento de datos",
+  "compliance.ccpa.opt_out_honored": "Solicitud de exclusión CCPA respetada",
+  "compliance.pdpa.notice_provided": "Aviso de privacidad PDPA proporcionado",
+  
+  "system.ready": "Sistema listo",
+  "system.maintenance": "Sistema en mantenimiento",
+  "system.overloaded": "Sistema sobrecargado, inténtelo de nuevo más tarde",
+  "system.healthy": "Todos los sistemas operativos",
+  
+  "ui.welcome": "Bienvenido a LM Watermark Lab",
+  "ui.goodbye": "Gracias por usar LM Watermark Lab",
+  "ui.help": "Escriba 'help' para ver los comandos disponibles"
+}

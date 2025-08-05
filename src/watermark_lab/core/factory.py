@@ -4,10 +4,16 @@ import math
 import random
 import hashlib
 import numpy as np
+import time
 from typing import Dict, Any, List, Optional, Tuple
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from collections import defaultdict
+
+from ..utils.exceptions import WatermarkError, ValidationError, ConfigurationError
+from ..utils.validation import validate_text, validate_positive_integer, validate_probability
+from ..utils.logging import get_logger
+from ..utils.metrics import record_operation_metric
 
 
 class BaseWatermark(ABC):
@@ -17,6 +23,18 @@ class BaseWatermark(ABC):
         """Initialize watermark with configuration."""
         self.config = kwargs
         self.method = self.__class__.__name__.lower().replace('watermark', '')
+        self.logger = get_logger(f"watermark.{self.method}")
+        
+        # Validate common parameters
+        if 'max_length' in kwargs:
+            self.max_length = validate_positive_integer(kwargs['max_length'], 'max_length')
+        else:
+            self.max_length = 100
+            
+        if 'seed' in kwargs and kwargs['seed'] is not None:
+            self.seed = validate_positive_integer(kwargs['seed'], 'seed')
+        else:
+            self.seed = 42
     
     @abstractmethod
     def generate(self, prompt: str, **kwargs) -> str:
@@ -27,6 +45,45 @@ class BaseWatermark(ABC):
     def get_config(self) -> Dict[str, Any]:
         """Get watermark configuration."""
         pass
+    
+    def _validate_generate_inputs(self, prompt: str, **kwargs) -> Tuple[str, Dict[str, Any]]:
+        """Validate inputs for generate method."""
+        try:
+            # Validate prompt
+            prompt = validate_text(prompt, min_length=1, max_length=10000)
+            
+            # Validate max_length if provided
+            max_length = kwargs.get('max_length', self.max_length)
+            if max_length is not None:
+                max_length = validate_positive_integer(max_length, 'max_length')
+                kwargs['max_length'] = max_length
+            
+            return prompt, kwargs
+            
+        except Exception as e:
+            raise ValidationError(f"Input validation failed: {e}")
+    
+    def _log_generation(self, prompt: str, result: str, duration: float, success: bool = True, error: str = None):
+        """Log generation metrics."""
+        try:
+            record_operation_metric(
+                f"watermark_generation_{self.method}",
+                duration,
+                success=success,
+                throughput=len(result.split()) / duration if success and duration > 0 else None
+            )
+            
+            self.logger.info(
+                f"Generated watermarked text: method={self.method}, "
+                f"prompt_length={len(prompt)}, output_length={len(result)}, "
+                f"duration={duration:.3f}s, success={success}"
+            )
+            
+            if not success and error:
+                self.logger.error(f"Generation failed: {error}")
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to log generation metrics: {e}")
 
 
 class KirchenbauerWatermark(BaseWatermark):
@@ -40,46 +97,84 @@ class KirchenbauerWatermark(BaseWatermark):
     
     def generate(self, prompt: str, **kwargs) -> str:
         """Generate watermarked text using Kirchenbauer method with actual statistical watermarking."""
-        max_length = kwargs.get('max_length', 100)
-        seed = kwargs.get('seed', self.config.get('seed', 42))
-        vocab_size = kwargs.get('vocab_size', 1000)  # Simplified vocab
+        start_time = time.time()
         
-        # Initialize random generator with seed for reproducibility
-        rng = np.random.RandomState(seed)
-        
-        # Simulate tokenization - in production would use actual tokenizer
-        tokens = self._simple_tokenize(prompt)
-        generated_tokens = []
-        
-        # Generate tokens with watermarked distribution
-        for i in range(max_length // 5):  # Generate fewer tokens for demo
-            # Create context-dependent seed
-            context_seed = self._hash_context(tokens[-4:] if len(tokens) >= 4 else tokens)
-            context_rng = np.random.RandomState((seed + context_seed) % (2**32))
+        try:
+            # Validate inputs
+            prompt, kwargs = self._validate_generate_inputs(prompt, **kwargs)
             
-            # Partition vocabulary into green and red lists
-            green_list_size = int(vocab_size * self.gamma)
-            green_list = set(context_rng.permutation(vocab_size)[:green_list_size])
+            max_length = kwargs.get('max_length', self.max_length)
+            seed = kwargs.get('seed', self.seed)
+            vocab_size = kwargs.get('vocab_size', 1000)  # Simplified vocab
             
-            # Sample next token with bias toward green list
-            # Simulate logits - in production would come from actual model
-            logits = np.random.normal(0, 1, vocab_size)
+            # Validate specific parameters
+            if max_length > 4096:
+                raise ValidationError("max_length cannot exceed 4096")
             
-            # Apply green list bias
-            for token_id in green_list:
-                logits[token_id] += self.delta
+            # Initialize random generator with seed for reproducibility
+            rng = np.random.RandomState(seed)
             
-            # Sample from modified distribution
-            probs = self._softmax(logits)
-            next_token_id = np.random.choice(vocab_size, p=probs)
+            # Simulate tokenization - in production would use actual tokenizer
+            tokens = self._simple_tokenize(prompt)
+            generated_tokens = []
             
-            # Convert back to word (simplified)
-            next_word = self._id_to_word(next_token_id)
-            generated_tokens.append(next_word)
-            tokens.append(next_word)
-        
-        watermarked_text = prompt + " " + " ".join(generated_tokens)
-        return watermarked_text.strip()
+            # Generate tokens with watermarked distribution
+            target_tokens = max(1, max_length // 5)  # Generate fewer tokens for demo
+            
+            for i in range(target_tokens):
+                try:
+                    # Create context-dependent seed
+                    context = tokens[-4:] if len(tokens) >= 4 else tokens
+                    context_seed = self._hash_context(context)
+                    context_rng = np.random.RandomState((seed + context_seed) % (2**32))
+                    
+                    # Partition vocabulary into green and red lists
+                    green_list_size = int(vocab_size * self.gamma)
+                    green_list = set(context_rng.permutation(vocab_size)[:green_list_size])
+                    
+                    # Sample next token with bias toward green list
+                    # Simulate logits - in production would come from actual model
+                    logits = np.random.normal(0, 1, vocab_size)
+                    
+                    # Apply green list bias
+                    for token_id in green_list:
+                        logits[token_id] += self.delta
+                    
+                    # Sample from modified distribution
+                    probs = self._softmax(logits)
+                    next_token_id = np.random.choice(vocab_size, p=probs)
+                    
+                    # Convert back to word (simplified)
+                    next_word = self._id_to_word(next_token_id)
+                    generated_tokens.append(next_word)
+                    tokens.append(next_word)
+                    
+                except Exception as e:
+                    self.logger.warning(f"Token generation failed at position {i}: {e}")
+                    # Add fallback token
+                    generated_tokens.append("text")
+                    tokens.append("text")
+            
+            if not generated_tokens:
+                raise WatermarkError("Failed to generate any tokens")
+            
+            watermarked_text = prompt + " " + " ".join(generated_tokens)
+            result = watermarked_text.strip()
+            
+            duration = time.time() - start_time
+            self._log_generation(prompt, result, duration, success=True)
+            
+            return result
+            
+        except Exception as e:
+            duration = time.time() - start_time
+            error_msg = str(e)
+            self._log_generation(prompt, "", duration, success=False, error=error_msg)
+            
+            if isinstance(e, (ValidationError, WatermarkError)):
+                raise
+            else:
+                raise WatermarkError(f"Kirchenbauer watermarking failed: {error_msg}")
     
     def _simple_tokenize(self, text: str) -> List[str]:
         """Simple tokenization for demonstration."""

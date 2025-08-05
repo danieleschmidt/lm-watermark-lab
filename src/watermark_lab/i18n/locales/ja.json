@@ -1,0 +1,41 @@
+{
+  "watermark.generation.success": "ウォーターマークの生成に成功しました",
+  "watermark.generation.failed": "ウォーターマークの生成に失敗しました",
+  "watermark.detection.success": "ウォーターマーク検出が完了しました",
+  "watermark.detection.failed": "ウォーターマーク検出に失敗しました",
+  "watermark.detection.positive": "ウォーターマークが検出されました",
+  "watermark.detection.negative": "ウォーターマークは検出されませんでした",
+  
+  "validation.text.empty": "テキストを空にすることはできません",
+  "validation.text.too_long": "テキストが最大長 {max_length} 文字を超えています",
+  "validation.text.too_short": "テキストは最低 {min_length} 文字必要です",
+  "validation.config.invalid": "無効な設定が提供されました",
+  "validation.method.unknown": "不明なウォーターマーク方法: {method}",
+  
+  "api.request.invalid": "無効なリクエスト形式",
+  "api.response.success": "リクエストが正常に処理されました",
+  "api.response.error": "リクエストの処理に失敗しました",
+  "api.rate_limit.exceeded": "レート制限を超えました。しばらくしてから再試行してください",
+  
+  "cli.command.success": "コマンドが正常に実行されました",
+  "cli.command.failed": "コマンドの実行に失敗しました",
+  "cli.help.description": "LM Watermark Lab - LLMウォーターマーキングの包括的なツールキット",
+  
+  "processing.started": "処理を開始しました",
+  "processing.completed": "処理が {duration:.2f} 秒で完了しました",
+  "processing.failed": "処理に失敗しました: {error}",
+  "processing.cancelled": "ユーザーによって処理がキャンセルされました",
+  
+  "compliance.gdpr.consent_required": "データ処理にはGDPRの同意が必要です",
+  "compliance.ccpa.opt_out_honored": "CCPAオプトアウト要求が処理されました",
+  "compliance.pdpa.notice_provided": "PDPAプライバシー通知が提供されました",
+  
+  "system.ready": "システム準備完了",
+  "system.maintenance": "システムメンテナンス中",
+  "system.overloaded": "システムが過負荷状態です。しばらくしてから再試行してください",
+  "system.healthy": "すべてのシステムが正常に動作しています",
+  
+  "ui.welcome": "LM Watermark Labへようこそ",
+  "ui.goodbye": "LM Watermark Labをご利用いただきありがとうございました",
+  "ui.help": "利用可能なコマンドを表示するには'help'と入力してください"
+}

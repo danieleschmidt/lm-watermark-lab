@@ -1,0 +1,26 @@
+{
+  "dcc1cc9e-153c-45d5-94c0-91d624cb2106": {
+    "record_id": "dcc1cc9e-153c-45d5-94c0-91d624cb2106",
+    "subject_id": "user123",
+    "purpose": "watermark_generation",
+    "data_types": [
+      "text_content"
+    ],
+    "processing_date": "2025-08-05T18:21:44.937601",
+    "legal_basis": "GDPR compliant processing",
+    "retention_period": 365,
+    "data_hash": "d1258e6c0d14ea3b691bdaa9acd61acd15bda98f753d6306eb5a23f9b8dd8f42"
+  },
+  "96eacf97-4653-42db-be88-fc03f723bf65": {
+    "record_id": "96eacf97-4653-42db-be88-fc03f723bf65",
+    "subject_id": "prod_test_user",
+    "purpose": "watermark_generation",
+    "data_types": [
+      "text_content"
+    ],
+    "processing_date": "2025-08-05T18:25:18.993156",
+    "legal_basis": "GDPR compliant processing",
+    "retention_period": 365,
+    "data_hash": "6ef8c3cead97e1de2fed5996f91176d469a3294503ed0a9941244061c75211b8"
+  }
+}
