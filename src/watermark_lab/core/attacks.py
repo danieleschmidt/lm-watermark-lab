@@ -2,10 +2,14 @@
 
 import random
 import re
+import hashlib
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from collections import Counter
+import statistics
+
+from ..utils.logging import get_logger
+from ..utils.exceptions import AttackError
 
 
 @dataclass
@@ -14,9 +18,10 @@ class AttackResult:
     original_text: str
     attacked_text: str
     attack_type: str
-    success: bool
+    attack_strength: str
     quality_score: float
     similarity_score: float
+    attack_success: bool
     metadata: Dict[str, Any]
     
     def to_dict(self) -> Dict[str, Any]:
@@ -25,411 +30,470 @@ class AttackResult:
             "original_text": self.original_text,
             "attacked_text": self.attacked_text,
             "attack_type": self.attack_type,
-            "success": self.success,
+            "attack_strength": self.attack_strength,
             "quality_score": self.quality_score,
             "similarity_score": self.similarity_score,
+            "attack_success": self.attack_success,
             "metadata": self.metadata
         }
 
 
 class BaseAttack(ABC):
-    """Base class for all attack implementations."""
+    """Base class for watermark attacks."""
     
-    def __init__(self, strength: str = "medium", **kwargs):
-        """Initialize attack with configuration."""
-        self.strength = strength
-        self.config = kwargs
-        self.name = self.__class__.__name__.lower().replace('attack', '')
+    def __init__(self, name: str):
+        self.name = name
+        self.logger = get_logger(f"attack.{name}")
     
     @abstractmethod
-    def attack(self, text: str) -> str:
-        """Apply attack to text."""
+    def attack(self, text: str, strength: str = "medium") -> AttackResult:
+        """Execute attack on text."""
         pass
     
-    def evaluate_attack(self, original: str, attacked: str) -> Tuple[float, float]:
-        """Evaluate attack quality and similarity."""
-        quality_score = self._calculate_quality_preservation(original, attacked)
-        similarity_score = self._calculate_similarity(original, attacked)
-        return quality_score, similarity_score
-    
-    def _calculate_quality_preservation(self, original: str, attacked: str) -> float:
-        """Calculate how well the attack preserves text quality."""
-        if not original or not attacked:
+    def _calculate_quality_score(self, original: str, attacked: str) -> float:
+        """Calculate quality preservation score."""
+        orig_tokens = original.lower().split()
+        att_tokens = attacked.lower().split()
+        
+        if not orig_tokens or not att_tokens:
             return 0.0
         
-        # Simple quality metrics
-        orig_words = original.split()
-        attacked_words = attacked.split()
+        # Simple quality score based on length preservation and vocabulary overlap
+        length_ratio = len(att_tokens) / len(orig_tokens)
+        length_score = max(0.0, 1.0 - abs(1.0 - length_ratio))
         
-        # Length preservation
-        length_ratio = min(len(attacked_words), len(orig_words)) / max(len(attacked_words), len(orig_words), 1)
+        orig_vocab = set(orig_tokens)
+        att_vocab = set(att_tokens)
+        vocab_overlap = len(orig_vocab & att_vocab) / max(len(orig_vocab | att_vocab), 1)
         
-        # Vocabulary preservation
-        orig_vocab = set(w.lower() for w in orig_words)
-        attacked_vocab = set(w.lower() for w in attacked_words)
-        vocab_overlap = len(orig_vocab & attacked_vocab) / len(orig_vocab | attacked_vocab) if orig_vocab | attacked_vocab else 0
-        
-        return (length_ratio + vocab_overlap) / 2
+        return (length_score * 0.4 + vocab_overlap * 0.6)
     
-    def _calculate_similarity(self, text1: str, text2: str) -> float:
-        """Calculate semantic similarity between texts."""
-        words1 = set(text1.lower().split())
-        words2 = set(text2.lower().split())
+    def _calculate_similarity_score(self, original: str, attacked: str) -> float:
+        """Calculate semantic similarity score."""
+        orig_tokens = set(original.lower().split())
+        att_tokens = set(attacked.lower().split())
         
-        if not words1 and not words2:
+        if not orig_tokens and not att_tokens:
             return 1.0
-        if not words1 or not words2:
-            return 0.0
         
-        # Jaccard similarity
-        intersection = len(words1 & words2)
-        union = len(words1 | words2)
+        intersection = len(orig_tokens & att_tokens)
+        union = len(orig_tokens | att_tokens)
         
-        return intersection / union
+        return intersection / max(union, 1)
 
 
 class ParaphraseAttack(BaseAttack):
-    """Paraphrasing attack using various strategies."""
+    """Paraphrasing attack to test watermark robustness."""
     
-    def __init__(self, method: str = "synonym", strength: str = "medium", **kwargs):
-        """Initialize paraphrase attack."""
-        super().__init__(strength, **kwargs)
-        self.method = method
-        self.synonym_dict = self._build_synonym_dict()
+    def __init__(self):
+        super().__init__("paraphrase")
+        self.synonyms = self._build_synonym_dict()
+        self.sentence_transforms = self._build_sentence_transforms()
     
-    def attack(self, text: str) -> str:
-        """Apply paraphrasing attack."""
-        if self.method == "synonym":
-            return self._synonym_replacement(text)
-        elif self.method == "reorder":
-            return self._sentence_reordering(text)
-        elif self.method == "expansion":
-            return self._text_expansion(text)
-        else:
-            return self._combined_paraphrase(text)
+    def attack(self, text: str, strength: str = "medium") -> AttackResult:
+        """Execute paraphrasing attack."""
+        try:
+            attacked_text = self._paraphrase_text(text, strength)
+            
+            quality_score = self._calculate_quality_score(text, attacked_text)
+            similarity_score = self._calculate_similarity_score(text, attacked_text)
+            
+            # Attack considered successful if text is significantly changed
+            attack_success = similarity_score < 0.8
+            
+            return AttackResult(
+                original_text=text,
+                attacked_text=attacked_text,
+                attack_type="paraphrase",
+                attack_strength=strength,
+                quality_score=quality_score,
+                similarity_score=similarity_score,
+                attack_success=attack_success,
+                metadata={"paraphrase_method": "synonym_replacement"}
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Paraphrase attack failed: {e}")
+            raise AttackError(f"Paraphrase attack failed: {e}")
     
-    def _synonym_replacement(self, text: str) -> str:
-        """Replace words with synonyms."""
-        words = text.split()
-        attacked_words = []
+    def _paraphrase_text(self, text: str, strength: str) -> str:
+        """Paraphrase text with given strength."""
+        tokens = text.split()
         
-        # Replacement probability based on strength
-        replacement_prob = {"light": 0.1, "medium": 0.3, "heavy": 0.5}.get(self.strength, 0.3)
+        # Determine replacement probability based on strength
+        replacement_probs = {"light": 0.2, "medium": 0.4, "heavy": 0.6}
+        prob = replacement_probs.get(strength, 0.4)
         
-        for word in words:
-            if random.random() < replacement_prob and word.lower() in self.synonym_dict:
-                synonyms = self.synonym_dict[word.lower()]
-                new_word = random.choice(synonyms)
-                # Preserve capitalization
-                if word[0].isupper():
-                    new_word = new_word.capitalize()
-                attacked_words.append(new_word)
+        paraphrased_tokens = []
+        
+        for token in tokens:
+            if random.random() < prob:
+                # Try to replace with synonym
+                clean_token = re.sub(r'[^\w]', '', token.lower())
+                if clean_token in self.synonyms:
+                    synonym = random.choice(self.synonyms[clean_token])
+                    # Preserve original capitalization
+                    if token[0].isupper():
+                        synonym = synonym.capitalize()
+                    paraphrased_tokens.append(synonym)
+                else:
+                    paraphrased_tokens.append(token)
             else:
-                attacked_words.append(word)
+                paraphrased_tokens.append(token)
         
-        return " ".join(attacked_words)
+        paraphrased_text = " ".join(paraphrased_tokens)
+        
+        # Apply sentence-level transformations for medium/heavy attacks
+        if strength in ["medium", "heavy"]:
+            paraphrased_text = self._apply_sentence_transforms(paraphrased_text, strength)
+        
+        return paraphrased_text
     
-    def _sentence_reordering(self, text: str) -> str:
-        """Reorder sentences while preserving meaning."""
-        sentences = re.split(r'[.!?]+', text)
-        sentences = [s.strip() for s in sentences if s.strip()]
+    def _apply_sentence_transforms(self, text: str, strength: str) -> str:
+        """Apply sentence-level transformations."""
+        sentences = re.split(r'([.!?])', text)
+        transformed_sentences = []
         
-        if len(sentences) <= 1:
-            return text
+        transform_prob = 0.3 if strength == "medium" else 0.5
         
-        # Randomly swap adjacent sentences
-        reorder_prob = {"light": 0.2, "medium": 0.4, "heavy": 0.6}.get(self.strength, 0.4)
+        for i in range(0, len(sentences), 2):  # Process sentence and punctuation pairs
+            sentence = sentences[i].strip()
+            punct = sentences[i+1] if i+1 < len(sentences) else ""
+            
+            if sentence and random.random() < transform_prob:
+                # Apply random transformation
+                transformation = random.choice(self.sentence_transforms)
+                sentence = transformation(sentence)
+            
+            transformed_sentences.append(sentence + punct)
         
-        reordered = sentences.copy()
-        for i in range(len(reordered) - 1):
-            if random.random() < reorder_prob:
-                reordered[i], reordered[i + 1] = reordered[i + 1], reordered[i]
-        
-        return ". ".join(reordered) + "."
-    
-    def _text_expansion(self, text: str) -> str:
-        """Expand text with additional phrases."""
-        words = text.split()
-        expanded_words = []
-        
-        expansion_phrases = [
-            "in other words", "that is to say", "furthermore", "additionally",
-            "specifically", "in particular", "for example", "such as"
-        ]
-        
-        expansion_prob = {"light": 0.05, "medium": 0.1, "heavy": 0.2}.get(self.strength, 0.1)
-        
-        for i, word in enumerate(words):
-            expanded_words.append(word)
-            if random.random() < expansion_prob and i < len(words) - 1:
-                phrase = random.choice(expansion_phrases)
-                expanded_words.append(phrase)
-        
-        return " ".join(expanded_words)
-    
-    def _combined_paraphrase(self, text: str) -> str:
-        """Apply multiple paraphrasing techniques."""
-        result = text
-        result = self._synonym_replacement(result)
-        result = self._text_expansion(result)
-        result = self._sentence_reordering(result)
-        return result
+        return "".join(transformed_sentences)
     
     def _build_synonym_dict(self) -> Dict[str, List[str]]:
-        """Build dictionary of synonyms."""
+        """Build synonym dictionary for replacements."""
         return {
-            "algorithm": ["method", "procedure", "technique", "approach"],
-            "method": ["approach", "technique", "procedure", "strategy"],
-            "system": ["framework", "structure", "architecture", "platform"],
-            "model": ["framework", "structure", "representation", "paradigm"],
-            "data": ["information", "content", "material", "input"],
-            "text": ["content", "material", "document", "passage"],
-            "analysis": ["examination", "evaluation", "assessment", "study"],
+            "algorithm": ["method", "approach", "technique", "procedure"],
+            "method": ["approach", "technique", "algorithm", "way"],
+            "system": ["framework", "platform", "structure", "model"],
+            "model": ["system", "framework", "structure", "design"],
+            "data": ["information", "content", "material", "dataset"],
+            "text": ["content", "document", "passage", "material"],
+            "analysis": ["examination", "study", "investigation", "assessment"],
+            "research": ["study", "investigation", "analysis", "exploration"],
             "result": ["outcome", "finding", "conclusion", "output"],
-            "approach": ["method", "strategy", "technique", "way"],
+            "approach": ["method", "technique", "strategy", "way"],
             "technique": ["method", "approach", "strategy", "procedure"],
-            "the": ["this", "that", "such"],
-            "and": ["plus", "also", "as well as"],
-            "with": ["using", "through", "via"],
-            "for": ["regarding", "concerning", "about"],
-            "watermark": ["signature", "marker", "identifier", "tag"],
-            "detection": ["identification", "recognition", "discovery"],
-            "generation": ["creation", "production", "synthesis"],
-            "security": ["protection", "safety", "defense"]
+            "process": ["procedure", "method", "operation", "workflow"],
+            "information": ["data", "content", "details", "material"],
+            "knowledge": ["understanding", "information", "expertise", "wisdom"],
+            "learning": ["training", "education", "acquisition", "development"],
+            "intelligence": ["reasoning", "cognition", "understanding", "smarts"],
+            "artificial": ["synthetic", "simulated", "manufactured", "constructed"],
+            "machine": ["computer", "device", "system", "apparatus"],
+            "computer": ["machine", "system", "device", "processor"],
+            "technology": ["tech", "innovation", "advancement", "system"],
+            "science": ["research", "study", "field", "discipline"],
+            "application": ["use", "implementation", "deployment", "usage"],
+            "generation": ["creation", "production", "formation", "development"],
+            "detection": ["identification", "discovery", "recognition", "finding"],
+            "watermark": ["signature", "marker", "identifier", "stamp"],
+            "security": ["protection", "safety", "defense", "safeguarding"]
         }
-
+    
+    def _build_sentence_transforms(self) -> List[callable]:
+        """Build sentence transformation functions."""
+        
+        def passive_to_active(sentence: str) -> str:
+            """Simple passive to active voice transformation."""
+            # Very basic transformation - just for demonstration
+            if "is" in sentence and "by" in sentence:
+                parts = sentence.split(" is ")
+                if len(parts) == 2:
+                    return f"The system {parts[1].replace(' by', ' uses')}"
+            return sentence
+        
+        def reorder_clauses(sentence: str) -> str:
+            """Reorder sentence clauses."""
+            parts = sentence.split(", ")
+            if len(parts) > 1:
+                random.shuffle(parts)
+                return ", ".join(parts)
+            return sentence
+        
+        def add_connectives(sentence: str) -> str:
+            """Add connecting words."""
+            connectives = ["Furthermore", "Moreover", "Additionally", "In addition"]
+            if not sentence.startswith(tuple(connectives)):
+                return f"{random.choice(connectives)}, " + sentence.lower()
+            return sentence
+        
+        return [passive_to_active, reorder_clauses, add_connectives]
+    
 
 class TruncationAttack(BaseAttack):
-    """Truncation attack removing parts of text."""
+    """Truncation attack by removing parts of text."""
     
-    def attack(self, text: str) -> str:
-        """Apply truncation attack."""
-        words = text.split()
-        if len(words) <= 1:
+    def __init__(self):
+        super().__init__("truncation")
+    
+    def attack(self, text: str, strength: str = "medium") -> AttackResult:
+        """Execute truncation attack."""
+        try:
+            attacked_text = self._truncate_text(text, strength)
+            
+            quality_score = self._calculate_quality_score(text, attacked_text)
+            similarity_score = self._calculate_similarity_score(text, attacked_text)
+            
+            # Attack success based on amount removed
+            original_length = len(text.split())
+            attacked_length = len(attacked_text.split())
+            removal_ratio = 1.0 - (attacked_length / max(original_length, 1))
+            attack_success = removal_ratio > 0.2
+            
+            return AttackResult(
+                original_text=text,
+                attacked_text=attacked_text,
+                attack_type="truncation",
+                attack_strength=strength,
+                quality_score=quality_score,
+                similarity_score=similarity_score,
+                attack_success=attack_success,
+                metadata={"removal_ratio": removal_ratio}
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Truncation attack failed: {e}")
+            raise AttackError(f"Truncation attack failed: {e}")
+    
+    def _truncate_text(self, text: str, strength: str) -> str:
+        """Truncate text with given strength."""
+        tokens = text.split()
+        
+        if not tokens:
             return text
         
-        # Truncation ratio based on strength
-        truncation_ratio = {"light": 0.1, "medium": 0.3, "heavy": 0.5}.get(self.strength, 0.3)
+        # Determine truncation ratios
+        truncation_ratios = {"light": 0.1, "medium": 0.25, "heavy": 0.4}
+        ratio = truncation_ratios.get(strength, 0.25)
         
-        truncation_type = random.choice(["beginning", "end", "middle", "random"])
+        tokens_to_remove = int(len(tokens) * ratio)
         
-        words_to_remove = int(len(words) * truncation_ratio)
+        if tokens_to_remove == 0:
+            return text
         
-        if truncation_type == "beginning":
-            return " ".join(words[words_to_remove:])
-        elif truncation_type == "end":
-            return " ".join(words[:-words_to_remove])
-        elif truncation_type == "middle":
-            start = len(words) // 4
-            end = start + words_to_remove
-            return " ".join(words[:start] + words[end:])
+        # Random truncation strategies
+        strategy = random.choice(["beginning", "end", "middle", "random"])
+        
+        if strategy == "beginning":
+            truncated_tokens = tokens[tokens_to_remove:]
+        elif strategy == "end":
+            truncated_tokens = tokens[:-tokens_to_remove]
+        elif strategy == "middle":
+            start_remove = len(tokens) // 4
+            end_remove = start_remove + tokens_to_remove
+            truncated_tokens = tokens[:start_remove] + tokens[end_remove:]
         else:  # random
-            indices_to_remove = set(random.sample(range(len(words)), words_to_remove))
-            return " ".join(word for i, word in enumerate(words) if i not in indices_to_remove)
+            indices_to_remove = set(random.sample(range(len(tokens)), tokens_to_remove))
+            truncated_tokens = [token for i, token in enumerate(tokens) if i not in indices_to_remove]
+        
+        return " ".join(truncated_tokens)
 
 
 class InsertionAttack(BaseAttack):
-    """Insertion attack adding noise words."""
+    """Insertion attack by adding noise text."""
     
-    def attack(self, text: str) -> str:
-        """Apply insertion attack."""
-        words = text.split()
-        insertion_prob = {"light": 0.05, "medium": 0.15, "heavy": 0.3}.get(self.strength, 0.15)
+    def __init__(self):
+        super().__init__("insertion")
+        self.noise_phrases = self._build_noise_phrases()
+    
+    def attack(self, text: str, strength: str = "medium") -> AttackResult:
+        """Execute insertion attack."""
+        try:
+            attacked_text = self._insert_noise(text, strength)
+            
+            quality_score = self._calculate_quality_score(text, attacked_text)
+            similarity_score = self._calculate_similarity_score(text, attacked_text)
+            
+            # Attack success based on amount inserted
+            original_length = len(text.split())
+            attacked_length = len(attacked_text.split())
+            insertion_ratio = (attacked_length / max(original_length, 1)) - 1.0
+            attack_success = insertion_ratio > 0.15
+            
+            return AttackResult(
+                original_text=text,
+                attacked_text=attacked_text,
+                attack_type="insertion",
+                attack_strength=strength,
+                quality_score=quality_score,
+                similarity_score=similarity_score,
+                attack_success=attack_success,
+                metadata={"insertion_ratio": insertion_ratio}
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Insertion attack failed: {e}")
+            raise AttackError(f"Insertion attack failed: {e}")
+    
+    def _insert_noise(self, text: str, strength: str) -> str:
+        """Insert noise into text."""
+        tokens = text.split()
         
-        noise_words = [
-            "actually", "basically", "essentially", "fundamentally", "generally",
-            "importantly", "particularly", "specifically", "typically", "usually",
-            "clearly", "obviously", "certainly", "definitely", "probably"
+        if not tokens:
+            return text
+        
+        # Determine insertion ratios
+        insertion_ratios = {"light": 0.1, "medium": 0.2, "heavy": 0.35}
+        ratio = insertion_ratios.get(strength, 0.2)
+        
+        tokens_to_insert = max(1, int(len(tokens) * ratio))
+        
+        # Insert noise at random positions
+        for _ in range(tokens_to_insert):
+            insert_position = random.randint(0, len(tokens))
+            noise_phrase = random.choice(self.noise_phrases)
+            
+            # Insert as individual tokens
+            noise_tokens = noise_phrase.split()
+            for i, noise_token in enumerate(noise_tokens):
+                tokens.insert(insert_position + i, noise_token)
+        
+        return " ".join(tokens)
+    
+    def _build_noise_phrases(self) -> List[str]:
+        """Build noise phrases for insertion."""
+        return [
+            "furthermore",
+            "in addition",
+            "moreover",
+            "also",
+            "specifically",
+            "particularly",
+            "especially",
+            "notably",
+            "importantly",
+            "significantly",
+            "as mentioned",
+            "for example",
+            "for instance",
+            "such as",
+            "including",
+            "namely",
+            "that is",
+            "in other words",
+            "to clarify",
+            "to elaborate",
+            "overall",
+            "in summary",
+            "in conclusion",
+            "ultimately",
+            "finally"
         ]
-        
-        attacked_words = []
-        for word in words:
-            attacked_words.append(word)
-            if random.random() < insertion_prob:
-                noise_word = random.choice(noise_words)
-                attacked_words.append(noise_word)
-        
-        return " ".join(attacked_words)
 
 
 class SubstitutionAttack(BaseAttack):
-    """Character-level substitution attack."""
+    """Token substitution attack."""
     
-    def attack(self, text: str) -> str:
-        """Apply character substitution attack."""
-        substitution_prob = {"light": 0.01, "medium": 0.03, "heavy": 0.08}.get(self.strength, 0.03)
-        
-        # Common character substitutions
-        substitutions = {
-            'a': ['@', 'α'], 'e': ['3', 'ε'], 'i': ['1', '!'], 'o': ['0', 'ο'],
-            's': ['$', '5'], 'g': ['9'], 'l': ['1', '|'], 't': ['7']
-        }
-        
-        attacked_chars = []
-        for char in text:
-            if char.lower() in substitutions and random.random() < substitution_prob:
-                substitution = random.choice(substitutions[char.lower()])
-                attacked_chars.append(substitution)
-            else:
-                attacked_chars.append(char)
-        
-        return "".join(attacked_chars)
-
-
-class TranslationAttack(BaseAttack):
-    """Back-translation attack simulation."""
+    def __init__(self):
+        super().__init__("substitution")
     
-    def attack(self, text: str) -> str:
-        """Simulate back-translation attack."""
-        # Simulate translation artifacts
-        words = text.split()
+    def attack(self, text: str, strength: str = "medium") -> AttackResult:
+        """Execute substitution attack."""
+        try:
+            attacked_text = self._substitute_tokens(text, strength)
+            
+            quality_score = self._calculate_quality_score(text, attacked_text)
+            similarity_score = self._calculate_similarity_score(text, attacked_text)
+            
+            attack_success = similarity_score < 0.85
+            
+            return AttackResult(
+                original_text=text,
+                attacked_text=attacked_text,
+                attack_type="substitution",
+                attack_strength=strength,
+                quality_score=quality_score,
+                similarity_score=similarity_score,
+                attack_success=attack_success,
+                metadata={"substitution_method": "random_replacement"}
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Substitution attack failed: {e}")
+            raise AttackError(f"Substitution attack failed: {e}")
+    
+    def _substitute_tokens(self, text: str, strength: str) -> str:
+        """Substitute random tokens."""
+        tokens = text.split()
         
-        # Translation probability based on strength
-        translation_prob = {"light": 0.1, "medium": 0.2, "heavy": 0.4}.get(self.strength, 0.2)
+        if not tokens:
+            return text
         
-        # Common translation artifacts
-        translation_changes = {
-            "the": ["a", "this", "that"],
-            "a": ["the", "one", "some"],
-            "is": ["was", "becomes", "appears"],
-            "are": ["were", "become", "appear"],
-            "will": ["shall", "would", "going to"],
-            "can": ["could", "able to", "may"],
-            "and": ["as well as", "plus", "together with"],
-            "but": ["however", "although", "yet"],
-            "very": ["extremely", "quite", "really"],
-            "good": ["well", "fine", "excellent"],
-            "bad": ["poor", "terrible", "awful"]
-        }
+        # Determine substitution probability
+        substitution_probs = {"light": 0.05, "medium": 0.15, "heavy": 0.3}
+        prob = substitution_probs.get(strength, 0.15)
         
-        attacked_words = []
-        for word in words:
-            if word.lower() in translation_changes and random.random() < translation_prob:
-                replacement = random.choice(translation_changes[word.lower()])
+        substitution_vocab = [
+            "item", "element", "component", "part", "aspect", "feature",
+            "factor", "entity", "object", "thing", "concept", "idea",
+            "notion", "principle", "characteristic", "property"
+        ]
+        
+        substituted_tokens = []
+        for token in tokens:
+            if random.random() < prob and len(token) > 3:  # Don't substitute short words
+                substitute = random.choice(substitution_vocab)
                 # Preserve capitalization
-                if word[0].isupper():
-                    replacement = replacement.capitalize()
-                attacked_words.append(replacement)
+                if token[0].isupper():
+                    substitute = substitute.capitalize()
+                substituted_tokens.append(substitute)
             else:
-                attacked_words.append(word)
+                substituted_tokens.append(token)
         
-        return " ".join(attacked_words)
-
-
-class CombinedAttack(BaseAttack):
-    """Combined attack using multiple strategies."""
-    
-    def __init__(self, attacks: List[str] = None, strength: str = "medium", **kwargs):
-        """Initialize combined attack."""
-        super().__init__(strength, **kwargs)
-        self.attacks = attacks or ["paraphrase", "truncation", "insertion"]
-        self.attack_instances = self._initialize_attacks()
-    
-    def attack(self, text: str) -> str:
-        """Apply combined attack."""
-        result = text
-        
-        # Apply attacks in sequence
-        for attack_instance in self.attack_instances:
-            if random.random() < 0.7:  # 70% chance to apply each attack
-                result = attack_instance.attack(result)
-        
-        return result
-    
-    def _initialize_attacks(self) -> List[BaseAttack]:
-        """Initialize attack instances."""
-        attack_map = {
-            "paraphrase": ParaphraseAttack,
-            "truncation": TruncationAttack,
-            "insertion": InsertionAttack,
-            "substitution": SubstitutionAttack,
-            "translation": TranslationAttack
-        }
-        
-        return [attack_map[name](strength=self.strength) for name in self.attacks if name in attack_map]
+        return " ".join(substituted_tokens)
 
 
 class AttackSimulator:
-    """Main attack simulation orchestrator."""
+    """Simulates various attacks on watermarked text."""
     
     def __init__(self):
-        """Initialize attack simulator."""
-        self.attack_registry = {
-            "paraphrase": ParaphraseAttack,
-            "truncation": TruncationAttack,
-            "insertion": InsertionAttack,
-            "substitution": SubstitutionAttack,
-            "translation": TranslationAttack,
-            "combined": CombinedAttack
+        self.attacks = {
+            "paraphrase": ParaphraseAttack(),
+            "truncation": TruncationAttack(),
+            "insertion": InsertionAttack(),
+            "substitution": SubstitutionAttack()
         }
+        self.logger = get_logger("attack.simulator")
     
-    def register_attack(self, name: str, attack_class: type):
-        """Register new attack type."""
-        self.attack_registry[name] = attack_class
+    def register_attack(self, name: str, attack: BaseAttack) -> None:
+        """Register a new attack."""
+        self.attacks[name] = attack
+        self.logger.info(f"Registered attack: {name}")
     
-    def run_attack(self, text: str, attack_name: str, **kwargs) -> AttackResult:
+    def run_attack(self, text: str, attack_name: str, strength: str = "medium") -> AttackResult:
         """Run specific attack on text."""
-        if attack_name not in self.attack_registry:
-            raise ValueError(f"Unknown attack: {attack_name}")
+        if attack_name not in self.attacks:
+            available = ", ".join(self.attacks.keys())
+            raise AttackError(f"Unknown attack: {attack_name}. Available: {available}")
         
-        attack = self.attack_registry[attack_name](**kwargs)
-        attacked_text = attack.attack(text)
-        
-        # Evaluate attack
-        quality_score, similarity_score = attack.evaluate_attack(text, attacked_text)
-        
-        # Determine success (simplified - would need actual detector)
-        success = similarity_score < 0.8  # Threshold for "successful" attack
-        
-        return AttackResult(
-            original_text=text,
-            attacked_text=attacked_text,
-            attack_type=attack_name,
-            success=success,
-            quality_score=quality_score,
-            similarity_score=similarity_score,
-            metadata={
-                "strength": kwargs.get("strength", "medium"),
-                "method": kwargs.get("method", "default")
-            }
-        )
+        attack = self.attacks[attack_name]
+        return attack.attack(text, strength)
     
-    def run_attack_suite(self, texts: List[str], attacks: List[str], **kwargs) -> Dict[str, List[AttackResult]]:
-        """Run multiple attacks on multiple texts."""
+    def run_attack_suite(self, text: str, attack_names: Optional[List[str]] = None, 
+                        strength: str = "medium") -> Dict[str, AttackResult]:
+        """Run multiple attacks on text."""
+        if attack_names is None:
+            attack_names = list(self.attacks.keys())
+        
         results = {}
         
-        for attack_name in attacks:
-            results[attack_name] = []
-            for text in texts:
-                try:
-                    result = self.run_attack(text, attack_name, **kwargs)
-                    results[attack_name].append(result)
-                except Exception as e:
-                    # Log error and continue
-                    print(f"Error running {attack_name} on text: {e}")
+        for attack_name in attack_names:
+            try:
+                result = self.run_attack(text, attack_name, strength)
+                results[attack_name] = result
+                self.logger.info(f"Attack {attack_name} completed with success: {result.attack_success}")
+            except Exception as e:
+                self.logger.error(f"Attack {attack_name} failed: {e}")
+                continue
         
         return results
-    
-    def evaluate_robustness(self, original_texts: List[str], attack_results: Dict[str, List[AttackResult]]) -> Dict[str, float]:
-        """Evaluate overall robustness against attacks."""
-        robustness_scores = {}
-        
-        for attack_name, results in attack_results.items():
-            if not results:
-                continue
-            
-            # Average quality preservation
-            avg_quality = sum(r.quality_score for r in results) / len(results)
-            
-            # Average similarity preservation
-            avg_similarity = sum(r.similarity_score for r in results) / len(results)
-            
-            # Robustness score (higher is better)
-            robustness_score = (avg_quality + avg_similarity) / 2
-            robustness_scores[attack_name] = robustness_score
-        
-        return robustness_scores
-    
-    def list_attacks(self) -> List[str]:
-        """List available attacks."""
-        return list(self.attack_registry.keys())

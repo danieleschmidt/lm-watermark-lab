@@ -50,9 +50,10 @@ class MetricsCollector:
         duration: float,
         throughput: Optional[float] = None,
         memory_peak_mb: Optional[float] = None,
-        success: bool = True
+        success: bool = True,
+        **kwargs  # Accept additional keyword arguments
     ) -> None:
-        """Record operation metrics."""
+        """Record operation metrics with flexible metadata."""
         metrics = PerformanceMetrics(
             operation=operation,
             duration=duration,
@@ -60,6 +61,11 @@ class MetricsCollector:
             memory_peak_mb=memory_peak_mb,
             success=success
         )
+        # Store additional metadata if needed
+        if kwargs:
+            for key, value in kwargs.items():
+                if hasattr(metrics, key):
+                    setattr(metrics, key, value)
         self.metrics.append(metrics)
     
     def get_operation_stats(self, operation: str) -> Dict[str, Any]:

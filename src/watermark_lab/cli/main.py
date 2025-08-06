@@ -229,5 +229,190 @@ def config(config_file):
         console.print(Panel(json.dumps(default_config, indent=2), title="Default Configuration"))
 
 
+@main.command()
+@click.option("--methods", default="kirchenbauer,markllm", help="Comma-separated watermarking methods")
+@click.option("--prompts", default="The future of AI involves,Machine learning enables", help="Comma-separated prompts")
+@click.option("--output", "-o", help="Output file for execution plan")
+@click.option("--execute", is_flag=True, help="Execute the plan immediately")
+def quantum_plan(methods, prompts, output, execute):
+    """Create and execute quantum-inspired task planning."""
+    from ..core.quantum_planner import QuantumTaskPlanner, create_watermarking_workflow
+    
+    # Parse inputs
+    method_list = methods.split(',')
+    prompt_list = prompts.split(',')
+    
+    console.print(f"[green]🧬 Creating quantum task plan for methods: {method_list}[/green]")
+    console.print(f"[cyan]📝 Using prompts: {prompt_list}[/cyan]")
+    
+    try:
+        # Initialize quantum planner
+        planner = QuantumTaskPlanner(max_coherence_time=500.0)
+        
+        # Create workflow configuration
+        workflow_config = {
+            "methods": method_list,
+            "prompts": prompt_list,
+            "include_detection": True,
+            "include_benchmark": True
+        }
+        
+        # Create quantum workflow
+        with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
+            task = progress.add_task("Creating quantum workflow...", total=None)
+            task_ids = create_watermarking_workflow(planner, workflow_config)
+        
+        console.print(f"[green]✨ Created {len(task_ids)} quantum tasks[/green]")
+        
+        # Show system state
+        system_state = planner.get_system_state()
+        
+        state_table = Table(title="Quantum System State")
+        state_table.add_column("Property", style="cyan")
+        state_table.add_column("Value", style="green")
+        
+        state_table.add_row("Total tasks", str(system_state['total_tasks']))
+        state_table.add_row("Entanglement groups", str(system_state['entanglement_groups']))
+        state_table.add_row("Active coherence", f"{system_state['active_coherence']:.3f}")
+        
+        console.print(state_table)
+        
+        # Optimize plan
+        console.print("[yellow]⚡ Optimizing quantum plan...[/yellow]")
+        optimization = planner.optimize_plan("coherence")
+        console.print(f"[green]Strategy: {optimization.get('strategy', 'default')}[/green]")
+        
+        # Generate execution plan
+        execution_plan = planner.plan_execution()
+        console.print(f"[cyan]📋 Generated execution plan with {len(execution_plan)} steps[/cyan]")
+        
+        # Export plan if requested
+        if output:
+            planner.export_plan(output)
+            console.print(f"[green]💾 Plan exported to {output}[/green]")
+        
+        # Execute plan if requested
+        if execute:
+            console.print("[bold green]🚀 Executing quantum plan...[/bold green]")
+            
+            # Create execution context
+            context = {
+                "methods": method_list,
+                "prompts": prompt_list,
+                "num_samples": min(len(prompt_list), 10)
+            }
+            
+            # Execute plan with progress bar
+            with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
+                exec_task = progress.add_task("Executing quantum tasks...", total=None)
+                results = planner.execute_plan(execution_plan, context)
+            
+            # Show results summary
+            console.print(f"[bold green]✅ Execution complete! {len(results)} tasks executed[/bold green]")
+            
+            successful_tasks = sum(1 for r in results if r.success)
+            console.print(f"[green]📊 Success rate: {successful_tasks}/{len(results)} ({successful_tasks/len(results)*100:.1f}%)[/green]")
+            
+            # Show quantum metrics
+            if results:
+                avg_duration = sum(r.duration for r in results) / len(results)
+                total_quantum_efficiency = sum(
+                    r.quantum_metrics.get('quantum_efficiency', 0) for r in results
+                ) / len(results)
+                
+                metrics_table = Table(title="Execution Metrics")
+                metrics_table.add_column("Metric", style="cyan")
+                metrics_table.add_column("Value", style="green")
+                
+                metrics_table.add_row("Average execution time", f"{avg_duration:.2f}s")
+                metrics_table.add_row("Quantum efficiency", f"{total_quantum_efficiency:.2%}")
+                
+                console.print(metrics_table)
+            
+            # Show sample results
+            results_table = Table(title="Sample Results")
+            results_table.add_column("Task", style="cyan")
+            results_table.add_column("Success", style="green")
+            results_table.add_column("Duration", style="yellow")
+            results_table.add_column("Output Type", style="magenta")
+            
+            for i, result in enumerate(results[:3]):  # Show first 3 results
+                task = planner.tasks.get(result.task_id)
+                if task:
+                    output_type = "unknown"
+                    if result.output and isinstance(result.output, dict):
+                        output_type = result.output.get('type', 'unknown')
+                    
+                    results_table.add_row(
+                        task.name[:30] + "..." if len(task.name) > 30 else task.name,
+                        "✅" if result.success else "❌",
+                        f"{result.duration:.2f}s",
+                        output_type
+                    )
+            
+            console.print(results_table)
+    
+    except Exception as e:
+        console.print(f"[red]Quantum planning error: {e}[/red]")
+
+
+@main.command()
+@click.option("--criteria", default="coherence", help="Optimization criteria: coherence, entanglement, energy")
+@click.option("--plan-file", help="Load existing plan file")
+def optimize_quantum(criteria, plan_file):
+    """Optimize quantum execution plan."""
+    from ..core.quantum_planner import QuantumTaskPlanner, create_watermarking_workflow
+    
+    console.print(f"[green]🔧 Optimizing quantum plan with criteria: {criteria}[/green]")
+    
+    try:
+        planner = QuantumTaskPlanner()
+        
+        if plan_file:
+            console.print(f"[cyan]📂 Loading plan from {plan_file}[/cyan]")
+            planner.import_plan(plan_file)
+        else:
+            # Create sample workflow for optimization
+            config = {
+                "methods": ["kirchenbauer", "markllm"],
+                "prompts": ["Sample prompt for optimization"],
+                "include_detection": True,
+                "include_benchmark": True
+            }
+            create_watermarking_workflow(planner, config)
+        
+        # Show before state
+        before_state = planner.get_system_state()
+        before_table = Table(title="Before Optimization")
+        before_table.add_column("Property", style="cyan")
+        before_table.add_column("Value", style="red")
+        
+        before_table.add_row("Total coherence", f"{before_state['global_quantum_state']['total_coherence']:.3f}")
+        before_table.add_row("Entanglement strength", f"{before_state['global_quantum_state']['entanglement_strength']:.3f}")
+        
+        console.print(before_table)
+        
+        # Optimize
+        with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
+            task = progress.add_task("Optimizing quantum system...", total=None)
+            result = planner.optimize_plan(criteria)
+        
+        console.print(f"[green]✨ Optimization result: {result}[/green]")
+        
+        # Show after state
+        after_state = planner.get_system_state()
+        after_table = Table(title="After Optimization")
+        after_table.add_column("Property", style="cyan")
+        after_table.add_column("Value", style="green")
+        
+        after_table.add_row("Total coherence", f"{after_state['global_quantum_state']['total_coherence']:.3f}")
+        after_table.add_row("Entanglement strength", f"{after_state['global_quantum_state']['entanglement_strength']:.3f}")
+        
+        console.print(after_table)
+        
+    except Exception as e:
+        console.print(f"[red]Optimization error: {e}[/red]")
+
+
 if __name__ == "__main__":
     main()
