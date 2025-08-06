@@ -47,6 +47,16 @@ class AttackError(WatermarkLabError):
     pass
 
 
+class PlanningError(WatermarkLabError):
+    """Exception raised when quantum task planning operations fail."""
+    pass
+
+
+class EvaluationError(WatermarkLabError):
+    """Exception raised when evaluation operations fail."""
+    pass
+
+
 class BenchmarkError(WatermarkLabError):
     """Exception raised during benchmarking operations."""
     pass

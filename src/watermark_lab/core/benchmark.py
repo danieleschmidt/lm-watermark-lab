@@ -6,7 +6,11 @@ import numpy as np
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
 import json
 
 from .factory import WatermarkFactory, BaseWatermark
@@ -348,6 +352,11 @@ class WatermarkBenchmark:
                            x_axis: str, y_axis: str, 
                            save_to: str = None) -> None:
         """Plot Pareto frontier for trade-off analysis."""
+        if not HAS_MATPLOTLIB:
+            print("⚠️ Matplotlib not available - skipping plot generation")
+            print(f"   Would plot {y_axis} vs {x_axis} for {len(results)} methods")
+            return
+        
         try:
             fig, ax = plt.subplots(figsize=(10, 6))
             

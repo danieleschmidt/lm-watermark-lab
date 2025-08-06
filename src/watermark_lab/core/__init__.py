@@ -1,1 +1,1 @@
-"""Core watermarking functionality."""
+"""Core watermarking functionality with quantum-inspired task planning."""
