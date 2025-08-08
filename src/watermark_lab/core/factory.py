@@ -14,6 +14,7 @@ from ..utils.exceptions import WatermarkError, ValidationError, ConfigurationErr
 from ..utils.validation import validate_text, validate_positive_integer, validate_probability
 from ..utils.logging import get_logger
 from ..utils.metrics import record_operation_metric
+from ..utils.model_loader import get_model_manager, ModelConfig, COMMON_MODEL_CONFIGS
 
 
 class BaseWatermark(ABC):
@@ -25,6 +26,15 @@ class BaseWatermark(ABC):
         self.method = self.__class__.__name__.lower().replace('watermark', '')
         self.logger = get_logger(f"watermark.{self.method}")
         
+        # Model configuration
+        self.model_name = kwargs.get('model_name', 'gpt2')
+        self.use_real_model = kwargs.get('use_real_model', True)
+        
+        # Initialize model manager and load model
+        self.model_manager = get_model_manager()
+        self.model_wrapper = None
+        self._initialize_model()
+        
         # Validate common parameters
         if 'max_length' in kwargs:
             self.max_length = validate_positive_integer(kwargs['max_length'], 'max_length')
@@ -35,6 +45,67 @@ class BaseWatermark(ABC):
             self.seed = validate_positive_integer(kwargs['seed'], 'seed')
         else:
             self.seed = 42
+    
+    def _initialize_model(self):
+        """Initialize the underlying language model."""
+        try:
+            if self.use_real_model:
+                # Try to get common config first
+                model_config = COMMON_MODEL_CONFIGS.get(self.model_name)
+                if model_config is None:
+                    model_config = ModelConfig(model_name=self.model_name)
+                
+                self.model_wrapper = self.model_manager.load_model(self.model_name, model_config)
+                self.logger.info(f"Loaded real model: {self.model_name}")
+            else:
+                # Use fallback model
+                fallback_config = ModelConfig(model_name=f"fallback_{self.model_name}")
+                self.model_wrapper = self.model_manager.load_model(f"fallback_{self.model_name}", fallback_config)
+                self.logger.info(f"Using fallback model for: {self.model_name}")
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to load model {self.model_name}: {e}. Using fallback.")
+            fallback_config = ModelConfig(model_name=f"fallback_{self.model_name}")
+            self.model_wrapper = self.model_manager.load_model(f"fallback_{self.model_name}", fallback_config)
+    
+    def _tokenize_with_model(self, text: str) -> List[int]:
+        """Tokenize text using the model's tokenizer."""
+        if self.model_wrapper:
+            return self.model_wrapper.tokenize(text)
+        else:
+            # Fallback tokenization
+            return [hash(word) % 1000 for word in text.lower().split()]
+    
+    def _detokenize_with_model(self, token_ids: List[int]) -> str:
+        """Convert token IDs back to text using the model."""
+        if self.model_wrapper:
+            return self.model_wrapper.detokenize(token_ids)
+        else:
+            # Fallback detokenization
+            return " ".join([f"token_{tid}" for tid in token_ids])
+    
+    def _get_vocab_size(self) -> int:
+        """Get vocabulary size from the model."""
+        if self.model_wrapper:
+            return self.model_wrapper.get_vocab_size()
+        else:
+            return 1000  # Fallback vocab size
+    
+    def _generate_with_model(self, prompt: str, max_new_tokens: int = 50, **kwargs) -> List[str]:
+        """Generate tokens using the model."""
+        if self.model_wrapper:
+            try:
+                return self.model_wrapper.generate_tokens(prompt, max_new_tokens, **kwargs)
+            except Exception as e:
+                self.logger.warning(f"Model generation failed: {e}. Using fallback.")
+                return self._simple_generate_fallback(prompt, max_new_tokens)
+        else:
+            return self._simple_generate_fallback(prompt, max_new_tokens)
+    
+    def _simple_generate_fallback(self, prompt: str, max_new_tokens: int = 50) -> List[str]:
+        """Simple fallback generation method."""
+        words = ["the", "and", "to", "of", "a", "in", "is", "for", "text", "watermark"]
+        return [random.choice(words) for _ in range(min(max_new_tokens, 20))]
     
     @abstractmethod
     def generate(self, prompt: str, **kwargs) -> str:
@@ -96,7 +167,7 @@ class KirchenbauerWatermark(BaseWatermark):
         self.delta = delta  # Bias strength
     
     def generate(self, prompt: str, **kwargs) -> str:
-        """Generate watermarked text using Kirchenbauer method with actual statistical watermarking."""
+        """Generate watermarked text using Kirchenbauer method with real model integration."""
         start_time = time.time()
         
         try:
@@ -105,7 +176,6 @@ class KirchenbauerWatermark(BaseWatermark):
             
             max_length = kwargs.get('max_length', self.max_length)
             seed = kwargs.get('seed', self.seed)
-            vocab_size = kwargs.get('vocab_size', 1000)  # Simplified vocab
             
             # Validate specific parameters
             if max_length > 4096:
@@ -114,52 +184,80 @@ class KirchenbauerWatermark(BaseWatermark):
             # Initialize random generator with seed for reproducibility
             rng = np.random.RandomState(seed)
             
-            # Simulate tokenization - in production would use actual tokenizer
-            tokens = self._simple_tokenize(prompt)
-            generated_tokens = []
+            # Use real tokenization if available
+            try:
+                token_ids = self._tokenize_with_model(prompt)
+                vocab_size = self._get_vocab_size()
+                self.logger.info(f"Using real tokenizer with vocab_size={vocab_size}")
+            except Exception as e:
+                self.logger.warning(f"Real tokenization failed: {e}. Using fallback.")
+                token_ids = [hash(word) % 1000 for word in prompt.lower().split()]
+                vocab_size = 1000
+            
+            generated_token_ids = []
+            context_token_ids = token_ids[-50:] if len(token_ids) > 50 else token_ids  # Keep recent context
             
             # Generate tokens with watermarked distribution
-            target_tokens = max(1, max_length // 5)  # Generate fewer tokens for demo
+            target_tokens = max(1, min(max_length // 5, 50))  # Reasonable limit
             
             for i in range(target_tokens):
                 try:
-                    # Create context-dependent seed
-                    context = tokens[-4:] if len(tokens) >= 4 else tokens
-                    context_seed = self._hash_context(context)
+                    # Create context-dependent seed for green list generation
+                    context = context_token_ids[-4:] if len(context_token_ids) >= 4 else context_token_ids
+                    context_seed = self._hash_context_ids(context)
                     context_rng = np.random.RandomState((seed + context_seed) % (2**32))
                     
                     # Partition vocabulary into green and red lists
                     green_list_size = int(vocab_size * self.gamma)
                     green_list = set(context_rng.permutation(vocab_size)[:green_list_size])
                     
-                    # Sample next token with bias toward green list
-                    # Simulate logits - in production would come from actual model
-                    logits = np.random.normal(0, 1, vocab_size)
+                    # Get logits from real model if available
+                    if self.model_wrapper and hasattr(self.model_wrapper, 'generate_logits'):
+                        try:
+                            logits = self.model_wrapper.generate_logits(context_token_ids)
+                            if hasattr(logits, 'cpu'):
+                                logits = logits.cpu().numpy()
+                            else:
+                                logits = np.array(logits)
+                        except Exception as e:
+                            self.logger.warning(f"Model logits failed: {e}. Using random.")
+                            logits = np.random.normal(0, 1, vocab_size)
+                    else:
+                        # Fallback to random logits
+                        logits = np.random.normal(0, 1, vocab_size)
                     
-                    # Apply green list bias
+                    # Apply green list bias (key watermarking step)
                     for token_id in green_list:
-                        logits[token_id] += self.delta
+                        if token_id < len(logits):
+                            logits[token_id] += self.delta
                     
                     # Sample from modified distribution
                     probs = self._softmax(logits)
-                    next_token_id = np.random.choice(vocab_size, p=probs)
+                    next_token_id = np.random.choice(len(probs), p=probs)
                     
-                    # Convert back to word (simplified)
-                    next_word = self._id_to_word(next_token_id)
-                    generated_tokens.append(next_word)
-                    tokens.append(next_word)
+                    generated_token_ids.append(next_token_id)
+                    context_token_ids.append(next_token_id)
                     
                 except Exception as e:
                     self.logger.warning(f"Token generation failed at position {i}: {e}")
-                    # Add fallback token
-                    generated_tokens.append("text")
-                    tokens.append("text")
+                    # Add fallback token ID
+                    fallback_token_id = hash(f"fallback_{i}") % vocab_size
+                    generated_token_ids.append(fallback_token_id)
+                    context_token_ids.append(fallback_token_id)
             
-            if not generated_tokens:
+            if not generated_token_ids:
                 raise WatermarkError("Failed to generate any tokens")
             
-            watermarked_text = prompt + " " + " ".join(generated_tokens)
-            result = watermarked_text.strip()
+            # Convert back to text using model's detokenizer
+            try:
+                generated_text = self._detokenize_with_model(generated_token_ids)
+                watermarked_text = f"{prompt} {generated_text}"
+                result = watermarked_text.strip()
+            except Exception as e:
+                self.logger.warning(f"Detokenization failed: {e}. Using fallback.")
+                # Fallback to simple word generation
+                fallback_words = [self._id_to_word(tid) for tid in generated_token_ids[:20]]
+                result = f"{prompt} {' '.join(fallback_words)}".strip()
             
             duration = time.time() - start_time
             self._log_generation(prompt, result, duration, success=True)
@@ -175,6 +273,11 @@ class KirchenbauerWatermark(BaseWatermark):
                 raise
             else:
                 raise WatermarkError(f"Kirchenbauer watermarking failed: {error_msg}")
+    
+    def _hash_context_ids(self, context_ids: List[int]) -> int:
+        """Hash context token IDs to create reproducible seed."""
+        context_str = "|".join(map(str, context_ids))
+        return int(hashlib.md5(context_str.encode()).hexdigest()[:8], 16)
     
     def _simple_tokenize(self, text: str) -> List[str]:
         """Simple tokenization for demonstration."""
