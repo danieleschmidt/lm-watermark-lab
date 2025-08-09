@@ -17,6 +17,101 @@ try:
     )
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
+    # Define comprehensive dummy torch module for fallback
+    import numpy as np
+    
+    class TorchDevice:
+        """Dummy torch.device replacement."""
+        def __init__(self, device_type="cpu"):
+            self.type = device_type
+        
+        def __str__(self):
+            return self.type
+    
+    class TorchTensor:
+        """Dummy torch.Tensor replacement using numpy arrays."""
+        def __init__(self, data):
+            if isinstance(data, (list, tuple)):
+                self.data = np.array(data)
+            else:
+                self.data = np.array([data]) if np.isscalar(data) else data
+            self.device = TorchDevice("cpu")
+        
+        def to(self, device):
+            """No-op device transfer."""
+            return self
+        
+        def __getitem__(self, key):
+            return TorchTensor(self.data[key])
+        
+        def tolist(self):
+            return self.data.tolist()
+        
+        @property
+        def shape(self):
+            return self.data.shape
+    
+    class TorchCuda:
+        """Dummy torch.cuda replacement."""
+        @staticmethod
+        def is_available():
+            return False
+    
+    class TorchBackends:
+        """Dummy torch.backends replacement."""
+        class mps:
+            @staticmethod
+            def is_available():
+                return False
+    
+    class torch:
+        """Comprehensive dummy torch module."""
+        Tensor = TorchTensor
+        device = TorchDevice
+        cuda = TorchCuda
+        backends = TorchBackends
+        float16 = "float16"
+        float32 = "float32"
+        
+        @staticmethod
+        def tensor(data, device=None):
+            """Create a dummy tensor."""
+            return TorchTensor(data)
+        
+        @staticmethod
+        def randn(*shape, device=None):
+            """Generate random tensor using numpy."""
+            if len(shape) == 1:
+                return TorchTensor(np.random.randn(shape[0]))
+            return TorchTensor(np.random.randn(*shape))
+        
+        @staticmethod
+        def no_grad():
+            """Dummy context manager."""
+            class NoGradContext:
+                def __enter__(self):
+                    return self
+                def __exit__(self, *args):
+                    pass
+            return NoGradContext()
+        
+        # Add other torch dtypes that might be used
+        int32 = "int32"
+        int64 = "int64"
+        bool = "bool"
+        
+        @classmethod
+        def __getattr__(cls, name):
+            """Fallback for any missing torch attributes."""
+            # Return string representation for dtype attributes
+            return name
+    
+    # Add torch.nn.functional as dummy
+    class F:
+        pass
+    
+    torch.nn = type('nn', (), {'functional': F})()
+        
     TRANSFORMERS_AVAILABLE = False
     warnings.warn("Transformers not available. Using fallback tokenization.")
 
@@ -134,11 +229,7 @@ class FallbackModelWrapper(BaseModelWrapper):
     def generate_logits(self, input_ids: List[int], context_length: int = 50) -> torch.Tensor:
         """Generate random logits as fallback."""
         vocab_size = self.get_vocab_size()
-        if TRANSFORMERS_AVAILABLE:
-            return torch.randn(vocab_size)
-        else:
-            import numpy as np
-            return np.random.randn(vocab_size)
+        return torch.randn(vocab_size)
     
     def generate_tokens(self, prompt: str, max_new_tokens: int = 50, **kwargs) -> List[str]:
         """Generate tokens using simple heuristics."""

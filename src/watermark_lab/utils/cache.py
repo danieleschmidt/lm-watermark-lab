@@ -374,6 +374,11 @@ def get_cache() -> CacheManager:
     return _global_cache
 
 
+def get_cache_manager() -> CacheManager:
+    """Alias for get_cache for compatibility."""
+    return get_cache()
+
+
 def cached(
     ttl: Optional[float] = None,
     key_func: Optional[Callable] = None,

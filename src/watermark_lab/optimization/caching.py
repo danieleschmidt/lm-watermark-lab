@@ -25,8 +25,24 @@ except ImportError:
     MEMCACHE_AVAILABLE = False
 
 from ..utils.logging import get_logger
-from ..utils.exceptions import CacheError
-from ..utils.metrics import MetricsCollector
+from ..utils.exceptions import WatermarkLabError
+
+
+class CacheError(WatermarkLabError):
+    """Exception raised for cache-related errors."""
+    pass
+
+
+try:
+    from ..utils.metrics import MetricsCollector
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
+    
+    class MetricsCollector:
+        """Fallback metrics collector."""
+        def __init__(self):
+            pass
 
 logger = get_logger("optimization.caching")
 
