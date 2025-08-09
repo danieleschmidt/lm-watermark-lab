@@ -42,6 +42,11 @@ class ModelError(WatermarkLabError):
     pass
 
 
+class ModelLoadError(ModelError):
+    """Exception raised when models fail to load."""
+    pass
+
+
 class AttackError(WatermarkLabError):
     """Exception raised during attack operations."""
     pass
@@ -87,6 +92,26 @@ class AuthenticationError(WatermarkLabError):
 
 class AuthorizationError(WatermarkLabError):
     """Exception raised for authorization issues."""
+    pass
+
+
+class SecurityError(WatermarkLabError):
+    """Exception raised for security-related issues."""
+    pass
+
+
+class MonitoringError(WatermarkLabError):
+    """Exception raised for monitoring-related issues."""
+    pass
+
+
+class DeploymentError(WatermarkLabError):
+    """Exception raised for deployment-related issues."""
+    pass
+
+
+class ScalingError(WatermarkLabError):
+    """Exception raised for auto-scaling issues."""
     pass
 
 
