@@ -5,7 +5,8 @@ import json
 import yaml
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 
@@ -63,10 +64,12 @@ class Settings(BaseSettings):
     data_dir: str = Field(default="./data", env="DATA_DIR")
     logs_dir: str = Field(default="./logs", env="LOGS_DIR")
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+        "extra": "ignore"
+    }
     
     @validator("cors_origins", pre=True)
     def parse_cors_origins(cls, v):
