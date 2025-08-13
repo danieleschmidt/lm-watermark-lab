@@ -1,7 +1,10 @@
 """Production-grade authentication and authorization system."""
 
 import os
-import jwt
+try:
+    import jwt
+except ImportError:
+    jwt = None
 import hashlib
 import secrets
 import time
