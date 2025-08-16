@@ -38,6 +38,10 @@ def run_security_scan():
             # Check individual security components
             security_files = {
                 'input_sanitization.py': 'input_sanitization',
+                'rate_limiting.py': 'rate_limiting',
+                'authentication.py': 'authentication',
+                'encryption.py': 'encryption',
+                'audit_logging.py': 'audit_logging',
                 '__init__.py': 'security_init'
             }
             
