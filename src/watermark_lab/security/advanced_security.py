@@ -14,6 +14,12 @@ import logging
 import json
 import re
 from pathlib import Path
+import ipaddress
+from functools import wraps
+
+class SecurityError(Exception):
+    """Security-related exception."""
+    pass
 
 class SecurityLevel(Enum):
     """Security levels for operations."""
@@ -793,10 +799,29 @@ class AdvancedSecurity:
 def require_authentication(func: Callable) -> Callable:
     """Decorator to require authentication."""
     
+    @wraps(func)
     def wrapper(*args, **kwargs):
-        # This would typically check for authentication in the request context
-        # For now, just a placeholder
-        return func(*args, **kwargs)
+        # Enhanced authentication check with proper error handling
+        try:
+            # Extract token from kwargs or request context
+            token_id = kwargs.pop('auth_token', None)
+            if not token_id:
+                raise SecurityError("Authentication required")
+            
+            is_valid, user, token = advanced_security.validate_token(token_id)
+            if not is_valid:
+                raise SecurityError("Invalid or expired token")
+            
+            # Add user context to kwargs
+            kwargs['authenticated_user'] = user
+            kwargs['access_token'] = token
+            
+            return func(*args, **kwargs)
+            
+        except SecurityError:
+            raise
+        except Exception as e:
+            raise SecurityError(f"Authentication error: {str(e)}")
     
     return wrapper
 
@@ -805,10 +830,30 @@ def require_permission(permission: str):
     """Decorator to require specific permission."""
     
     def decorator(func: Callable) -> Callable:
+        @wraps(func)
         def wrapper(*args, **kwargs):
-            # This would typically check permissions from request context
-            # For now, just a placeholder
-            return func(*args, **kwargs)
+            # Enhanced permission check
+            try:
+                user = kwargs.get('authenticated_user')
+                if not user:
+                    raise SecurityError("User authentication required")
+                
+                if not advanced_security.check_permission(user, permission):
+                    advanced_security._log_security_event(
+                        event_type="permission_denied",
+                        threat_level=ThreatLevel.MEDIUM,
+                        user_id=user.user_id,
+                        description=f"Permission denied: {permission}"
+                    )
+                    raise SecurityError(f"Permission denied: {permission}")
+                
+                return func(*args, **kwargs)
+                
+            except SecurityError:
+                raise
+            except Exception as e:
+                raise SecurityError(f"Permission check error: {str(e)}")
+                
         return wrapper
     
     return decorator

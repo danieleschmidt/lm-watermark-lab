@@ -98,6 +98,16 @@ class OptimizationConfig:
     
     # Optimization strategy
     strategy: OptimizationStrategy = OptimizationStrategy.ADAPTIVE
+    
+    # Auto-scaling configuration
+    enable_auto_scaling: bool = True
+    scale_up_threshold: float = 0.8  # CPU/Memory threshold to scale up
+    scale_down_threshold: float = 0.3  # CPU/Memory threshold to scale down
+    min_workers: int = 2
+    
+    # Resource limits
+    max_memory_per_worker: int = 2 * 1024 * 1024 * 1024  # 2GB per worker
+    max_execution_time: int = 300  # 5 minutes max execution time
     auto_tune: bool = True
     
     def to_dict(self) -> Dict[str, Any]:

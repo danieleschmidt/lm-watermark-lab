@@ -302,11 +302,19 @@ class MemoryCache(CacheBackend):
         
         try:
             with self._lock:
-                if cache_key in self.cache:
-                    self._remove_key(cache_key)
-                    self.stats.deletes += 1
-                    return True
-                return False
+                if cache_key not in self.cache:
+                    return False
+                
+                # Remove item and update tracking
+                item_size = len(self._serialize_value(self.cache[cache_key]))
+                self.memory_usage -= item_size
+                
+                self._remove_key(cache_key)
+                self.stats.deletes += 1
+                self.stats.size = len(self.cache)
+                self.stats.memory_usage = self.memory_usage
+                
+                return True
                 
         except Exception as e:
             self.logger.error(f"Cache delete failed: {e}")
@@ -332,7 +340,7 @@ class MemoryCache(CacheBackend):
             return False
     
     def exists(self, key: str) -> bool:
-        """Check if key exists in memory cache."""
+        """Check if key exists and is not expired."""
         cache_key = self._generate_key(key)
         
         with self._lock:
@@ -344,7 +352,6 @@ class MemoryCache(CacheBackend):
                 return False
             
             return True
-    
     def _is_expired(self, cache_key: str) -> bool:
         """Check if cache key is expired."""
         ttl = self.ttls.get(cache_key, 0)

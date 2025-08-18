@@ -1,28 +1,126 @@
 {
-  "timestamp": 1755395111.4345984,
-  "validation_results": {
-    "imports": {
-      "passed": true,
-      "description": "Module Import Validation"
+  "status": "failed",
+  "suites": {
+    "Import Validation": {
+      "status": "partial",
+      "tests": [
+        {
+          "name": "Import watermark_lab",
+          "status": "PASS",
+          "description": "Core package"
+        },
+        {
+          "name": "Import watermark_lab.core.factory",
+          "status": "FAIL",
+          "description": "Watermark factory",
+          "error": "No module named 'numpy'"
+        },
+        {
+          "name": "Import watermark_lab.core.detector",
+          "status": "FAIL",
+          "description": "Detection system",
+          "error": "No module named 'psutil'"
+        },
+        {
+          "name": "Import watermark_lab.security.advanced_security",
+          "status": "PASS",
+          "description": "Security system"
+        },
+        {
+          "name": "Import watermark_lab.optimization.performance_optimizer",
+          "status": "FAIL",
+          "description": "Performance optimization",
+          "error": "No module named 'psutil'"
+        },
+        {
+          "name": "Import watermark_lab.optimization.caching",
+          "status": "PASS",
+          "description": "Caching system"
+        }
+      ],
+      "errors": [
+        "Import error for watermark_lab.core.factory: No module named 'numpy'",
+        "Import error for watermark_lab.core.detector: No module named 'psutil'",
+        "Import error for watermark_lab.optimization.performance_optimizer: No module named 'psutil'"
+      ]
     },
-    "functionality": {
-      "passed": true,
-      "description": "Core Functionality Validation"
+    "Basic Functionality": {
+      "status": "partial",
+      "tests": [
+        {
+          "name": "WatermarkFactory import",
+          "status": "FAIL",
+          "error": "No module named 'numpy'"
+        },
+        {
+          "name": "Detection functionality",
+          "status": "FAIL",
+          "error": "No module named 'psutil'"
+        }
+      ],
+      "errors": [
+        "Factory import error: No module named 'numpy'",
+        "Detection error: No module named 'psutil'"
+      ]
     },
-    "unit_tests": {
-      "passed": false,
-      "description": "Unit Test Execution"
+    "Security System": {
+      "status": "partial",
+      "tests": [
+        {
+          "name": "Security system initialization",
+          "status": "PASS",
+          "description": "Security system initialized with 2 users"
+        },
+        {
+          "name": "Authentication system",
+          "status": "PASS",
+          "description": "Authentication properly rejected invalid credentials"
+        },
+        {
+          "name": "Security system validation",
+          "status": "FAIL",
+          "error": "missing ), unterminated subpattern at position 0"
+        }
+      ],
+      "errors": [
+        "Security validation error: missing ), unterminated subpattern at position 0"
+      ]
     },
-    "code_quality": {
-      "passed": true,
-      "description": "Code Quality Checks"
+    "Performance Systems": {
+      "status": "success",
+      "tests": [
+        {
+          "name": "Memory cache operations",
+          "status": "PASS",
+          "description": "Cache set/get operations working correctly"
+        },
+        {
+          "name": "Cache statistics",
+          "status": "PASS",
+          "description": "Cache stats: 1 hits, 0 misses"
+        }
+      ],
+      "errors": []
+    },
+    "Research Algorithms": {
+      "status": "failed",
+      "error": "cannot access local variable 'research_methods' where it is not associated with a value"
     }
   },
   "summary": {
-    "total_checks": 4,
-    "passed_checks": 3,
-    "failed_checks": 1,
-    "success_rate": 75.0,
-    "status": "FAILED"
-  }
+    "total_tests": 13,
+    "passed_tests": 7,
+    "failed_tests": 6,
+    "errors": [
+      "Import error for watermark_lab.core.factory: No module named 'numpy'",
+      "Import error for watermark_lab.core.detector: No module named 'psutil'",
+      "Import error for watermark_lab.optimization.performance_optimizer: No module named 'psutil'",
+      "Factory import error: No module named 'numpy'",
+      "Detection error: No module named 'psutil'",
+      "Security validation error: missing ), unterminated subpattern at position 0",
+      "Research Algorithms execution failed: cannot access local variable 'research_methods' where it is not associated with a value"
+    ]
+  },
+  "execution_time": 0.42231178283691406,
+  "timestamp": 1755528062.4234579
 }

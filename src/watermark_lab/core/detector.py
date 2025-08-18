@@ -2,19 +2,13 @@
 
 import math
 import hashlib
-import numpy as np
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 try:
+    import numpy as np
     from scipy import stats
 except ImportError:
-    # Fallback for missing scipy
-    class stats:
-        class norm:
-            @staticmethod
-            def cdf(x):
-                # Simple approximation of normal CDF
-                return 0.5 * (1 + math.erf(x / math.sqrt(2)))
+    from ..utils.fallback_imports import np, stats
 from collections import defaultdict, Counter
 import time
 try:
