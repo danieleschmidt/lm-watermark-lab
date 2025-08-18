@@ -97,10 +97,12 @@ class ErrorRecord:
 class ErrorRecoveryStrategy:
     """Base class for error recovery strategies."""
     
-    def __init__(self, name: str, max_attempts: int = 3):
+    def __init__(self, name: str, max_attempts: int = 3, backoff_factor: float = 2.0):
         self.name = name
         self.max_attempts = max_attempts
+        self.backoff_factor = backoff_factor
         self.attempt_count = 0
+        self.logger = logging.getLogger(f"recovery.{name}")
     
     def can_recover(self, error: Exception, context: ErrorContext) -> bool:
         """Check if this strategy can recover from the error."""
@@ -346,6 +348,53 @@ class AdvancedErrorHandler:
             return "unknown"
     
     def _log_error(self, record: ErrorRecord):
+        \"\"\"Log error with appropriate level.\"\"\"
+        log_message = (
+            f\"Error {record.error_id}: {record.error_type} in {record.context.function_name} - \"
+            f\"{record.error_message} (occurrence #{record.occurrence_count})\"
+        )
+        
+        if record.severity == ErrorSeverity.CRITICAL:
+            self.logger.critical(log_message)
+        elif record.severity == ErrorSeverity.HIGH:
+            self.logger.error(log_message)
+        elif record.severity == ErrorSeverity.MEDIUM:
+            self.logger.warning(log_message)
+        else:
+            self.logger.info(log_message)
+    
+    def _attempt_recovery(
+        self, 
+        error: Exception, 
+        record: ErrorRecord, 
+        context: ErrorContext
+    ) -> Optional[Any]:
+        \"\"\"Attempt error recovery using available strategies.\"\"\"
+        
+        for strategy in self.recovery_strategies:
+            if strategy.can_recover(error, context):
+                self.logger.info(f\"Attempting recovery with {strategy.name} strategy\")
+                
+                try:
+                    if strategy.attempt_recovery(error, context):
+                        record.resolution_attempted = True
+                        record.resolution_successful = True
+                        record.resolution_method = strategy.name
+                        
+                        self.logger.info(f\"Recovery successful using {strategy.name}\")
+                        return True
+                        
+                except Exception as recovery_error:
+                    self.logger.warning(
+                        f\"Recovery strategy {strategy.name} failed: {recovery_error}\"
+                    )
+                    continue
+        
+        record.resolution_attempted = True
+        record.resolution_successful = False
+        return None
+    
+    def _monitor_error(self, record: ErrorRecord):
         """Log error with appropriate level."""
         
         log_message = (

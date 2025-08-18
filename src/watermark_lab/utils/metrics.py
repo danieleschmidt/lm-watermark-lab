@@ -5,7 +5,10 @@ import statistics
 from typing import Dict, List, Any, Optional, Union
 from dataclasses import dataclass
 from datetime import datetime
-import psutil
+try:
+    import psutil
+except ImportError:
+    from .fallback_imports import psutil
 
 
 @dataclass
