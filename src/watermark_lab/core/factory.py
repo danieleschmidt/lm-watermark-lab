@@ -37,6 +37,7 @@ from ..utils.validation import validate_text, validate_positive_integer, validat
 from ..utils.logging import get_logger
 from ..utils.metrics import record_operation_metric
 from ..utils.model_loader import get_model_manager, ModelConfig, COMMON_MODEL_CONFIGS
+from ..methods.kirchenbauer import KirchenbauerWatermark
 
 
 class BaseWatermark(ABC):
@@ -2107,12 +2108,6 @@ class WatermarkFactory:
     
     _registry: Dict[str, type] = {
         "kirchenbauer": KirchenbauerWatermark,
-        "markllm": MarkLLMWatermark,
-        "aaronson": AaronsonWatermark,
-        "zhao": ZhaoWatermark,
-        "sacw": SemanticContextualWatermark,  # Novel research algorithm
-        "arms": AdversarialRobustWatermark,   # Novel adversarial-robust algorithm
-        "qipw": QuantumInspiredWatermark,     # Novel quantum-inspired algorithm
     }
     
     @classmethod

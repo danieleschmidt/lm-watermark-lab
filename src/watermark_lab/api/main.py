@@ -15,8 +15,7 @@ import traceback
 
 from ..core.factory import WatermarkFactory
 from ..core.detector import WatermarkDetector
-from ..core.benchmark import WatermarkBenchmark
-from ..core.attacks import AttackSimulator
+from ..methods.base import DetectionResult
 from ..utils.exceptions import (
     WatermarkLabError, ValidationError, SecurityError, 
     TimeoutError, ResourceError, RateLimitError, format_error_response

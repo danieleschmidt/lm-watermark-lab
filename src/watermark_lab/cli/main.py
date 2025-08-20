@@ -35,19 +35,37 @@ def generate(method, model, prompt, output, max_length):
         from ..core.factory import WatermarkFactory
         
         # Create watermark instance
-        watermark = WatermarkFactory.create(method)
-        result = watermark.generate(prompt, max_length=max_length)
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console
+        ) as progress:
+            task = progress.add_task("Generating watermarked text...", total=None)
+            
+            watermark = WatermarkFactory.create(
+                method=method,
+                model_name=model,
+                key="default"
+            )
+            result = watermark.generate(prompt, max_length=max_length)
+            
+            progress.update(task, completed=True)
         
         if output:
             with open(output, "w") as f:
                 f.write(result)
             console.print(f"[green]Output saved to {output}[/green]")
         else:
-            console.print(f"[cyan]{result}[/cyan]")
+            console.print(Panel(result, title="Watermarked Text", border_style="cyan"))
             
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
-        console.print(f"[yellow]Available methods: {', '.join(WatermarkFactory.list_methods())}[/yellow]")
+        try:
+            from ..methods import list_available_methods
+            methods = [m["name"] for m in list_available_methods()]
+            console.print(f"[yellow]Available methods: {', '.join(methods)}[/yellow]")
+        except:
+            console.print(f"[yellow]Available methods: kirchenbauer[/yellow]")
 
 
 @main.command()
@@ -59,17 +77,23 @@ def detect(text, method, config):
     console.print("[green]Analyzing text for watermarks...[/green]")
     
     try:
-        from ..core.detector import WatermarkDetector
+        from ..core.factory import WatermarkFactory
         
-        # Create detector
-        detector_config = {"method": method}
-        if config:
-            import json
-            with open(config, 'r') as f:
-                detector_config.update(json.load(f))
+        # Create watermarker for detection
+        watermarker = WatermarkFactory.create(
+            method=method,
+            model_name="gpt2",  # Default model
+            key="default"
+        )
         
-        detector = WatermarkDetector(detector_config)
-        result = detector.detect(text)
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console
+        ) as progress:
+            task = progress.add_task("Detecting watermark...", total=None)
+            result = watermarker.detect(text)
+            progress.update(task, completed=True)
         
         table = Table(title="Detection Results")
         table.add_column("Metric", style="cyan")
@@ -79,8 +103,9 @@ def detect(text, method, config):
         table.add_row("Watermark Detected", status)
         table.add_row("Confidence", f"{result.confidence:.2%}")
         table.add_row("P-value", f"{result.p_value:.6f}")
-        table.add_row("Test Statistic", f"{result.test_statistic:.3f}")
-        table.add_row("Method", result.method)
+        if result.test_statistic is not None:
+            table.add_row("Test Statistic", f"{result.test_statistic:.3f}")
+        table.add_row("Method", method)
         
         console.print(table)
         
@@ -93,12 +118,24 @@ def methods():
     """List available watermark methods."""
     console.print("[green]Available watermark methods:[/green]")
     
-    methods_list = [
-        ("kirchenbauer", "Kirchenbauer et al. watermarking"),
-        ("markllm", "MarkLLM toolkit integration"),
-        ("aaronson", "Aaronson cryptographic approach"),
-        ("zhao", "Zhao et al. robust watermarking"),
-    ]
+    try:
+        from ..methods import list_available_methods
+        methods_info = list_available_methods()
+        
+        table = Table(title="Available Methods")
+        table.add_column("Method", style="cyan")
+        table.add_column("Description", style="green")
+        table.add_column("Type", style="yellow")
+        
+        for method in methods_info:
+            table.add_row(method["name"], method["description"], method["watermark_type"])
+        
+        console.print(table)
+    except Exception:
+        # Fallback
+        methods_list = [
+            ("kirchenbauer", "Kirchenbauer et al. watermarking", "statistical"),
+        ]
     
     table = Table(title="Watermark Methods")
     table.add_column("Method", style="cyan")
