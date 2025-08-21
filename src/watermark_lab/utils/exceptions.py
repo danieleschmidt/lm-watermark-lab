@@ -128,6 +128,16 @@ class ComplianceError(WatermarkLabError):
     pass
 
 
+class PerformanceError(WatermarkLabError):
+    """Exception raised for performance-related issues."""
+    pass
+
+
+class ExperimentError(WatermarkLabError):
+    """Exception raised during experimental operations."""
+    pass
+
+
 # Error handling utilities
 def format_error_response(error: Exception, include_traceback: bool = False) -> Dict[str, Any]:
     """Format error for API responses."""
