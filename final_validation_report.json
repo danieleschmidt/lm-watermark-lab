@@ -1,15 +1,15 @@
 {
-  "status": "partial",
-  "pass_rate": 75.0,
+  "status": "success",
+  "pass_rate": 87.5,
   "total_tests": 8,
-  "passed_tests": 6,
-  "failed_tests": 2,
-  "execution_time": 0.28921008110046387,
-  "timestamp": 1755528169.202368,
+  "passed_tests": 7,
+  "failed_tests": 1,
+  "execution_time": 0.2927727699279785,
+  "timestamp": 1755900454.5678616,
   "test_results": {
     "watermark_lab": true,
     "security": true,
-    "caching": false,
+    "caching": true,
     "detection": true,
     "sacw": true,
     "arms": true,
@@ -19,7 +19,7 @@
   "import_results": {
     "watermark_lab": true,
     "security": true,
-    "caching": false,
+    "caching": true,
     "detection": true
   },
   "research_results": {
