@@ -1,5 +1,5 @@
 {
-  "status": "failed",
+  "status": "partial",
   "suites": {
     "Import Validation": {
       "status": "partial",
@@ -13,13 +13,12 @@
           "name": "Import watermark_lab.core.factory",
           "status": "FAIL",
           "description": "Watermark factory",
-          "error": "No module named 'numpy'"
+          "error": "No module named 'torch'"
         },
         {
           "name": "Import watermark_lab.core.detector",
-          "status": "FAIL",
-          "description": "Detection system",
-          "error": "No module named 'psutil'"
+          "status": "PASS",
+          "description": "Detection system"
         },
         {
           "name": "Import watermark_lab.security.advanced_security",
@@ -28,9 +27,8 @@
         },
         {
           "name": "Import watermark_lab.optimization.performance_optimizer",
-          "status": "FAIL",
-          "description": "Performance optimization",
-          "error": "No module named 'psutil'"
+          "status": "PASS",
+          "description": "Performance optimization"
         },
         {
           "name": "Import watermark_lab.optimization.caching",
@@ -39,9 +37,7 @@
         }
       ],
       "errors": [
-        "Import error for watermark_lab.core.factory: No module named 'numpy'",
-        "Import error for watermark_lab.core.detector: No module named 'psutil'",
-        "Import error for watermark_lab.optimization.performance_optimizer: No module named 'psutil'"
+        "Import error for watermark_lab.core.factory: No module named 'torch'"
       ]
     },
     "Basic Functionality": {
@@ -50,17 +46,16 @@
         {
           "name": "WatermarkFactory import",
           "status": "FAIL",
-          "error": "No module named 'numpy'"
+          "error": "No module named 'torch'"
         },
         {
           "name": "Detection functionality",
-          "status": "FAIL",
-          "error": "No module named 'psutil'"
+          "status": "PASS",
+          "description": "Detection result: confidence=0.00"
         }
       ],
       "errors": [
-        "Factory import error: No module named 'numpy'",
-        "Detection error: No module named 'psutil'"
+        "Factory import error: No module named 'torch'"
       ]
     },
     "Security System": {
@@ -103,24 +98,37 @@
       "errors": []
     },
     "Research Algorithms": {
-      "status": "failed",
-      "error": "cannot access local variable 'research_methods' where it is not associated with a value"
+      "status": "success",
+      "tests": [
+        {
+          "name": "SACW algorithm",
+          "status": "PASS",
+          "description": "SACW detection: confidence=0.990, p_value=0.001"
+        },
+        {
+          "name": "ARMS algorithm",
+          "status": "PASS",
+          "description": "ARMS detection: confidence=0.427, p_value=0.573"
+        },
+        {
+          "name": "QIPW algorithm",
+          "status": "PASS",
+          "description": "QIPW detection: confidence=0.704, p_value=0.296"
+        }
+      ],
+      "errors": []
     }
   },
   "summary": {
-    "total_tests": 13,
-    "passed_tests": 7,
-    "failed_tests": 6,
+    "total_tests": 16,
+    "passed_tests": 13,
+    "failed_tests": 3,
     "errors": [
-      "Import error for watermark_lab.core.factory: No module named 'numpy'",
-      "Import error for watermark_lab.core.detector: No module named 'psutil'",
-      "Import error for watermark_lab.optimization.performance_optimizer: No module named 'psutil'",
-      "Factory import error: No module named 'numpy'",
-      "Detection error: No module named 'psutil'",
-      "Security validation error: missing ), unterminated subpattern at position 0",
-      "Research Algorithms execution failed: cannot access local variable 'research_methods' where it is not associated with a value"
+      "Import error for watermark_lab.core.factory: No module named 'torch'",
+      "Factory import error: No module named 'torch'",
+      "Security validation error: missing ), unterminated subpattern at position 0"
     ]
   },
-  "execution_time": 0.42231178283691406,
-  "timestamp": 1755528062.4234579
+  "execution_time": 0.48087477684020996,
+  "timestamp": 1755900453.5938196
 }

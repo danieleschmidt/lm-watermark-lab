@@ -1,0 +1,67 @@
+{
+  "status": "READY",
+  "pass_rate": 90.0,
+  "total_tests": 10,
+  "passed_tests": 9,
+  "failed_tests": 1,
+  "detailed_results": {
+    "basic_imports": {
+      "status": "TESTING",
+      "tests": [
+        {
+          "name": "Core package import",
+          "status": "PASS"
+        },
+        {
+          "name": "Detector import",
+          "status": "PASS"
+        },
+        {
+          "name": "Security system",
+          "status": "FAIL",
+          "error": "cannot import name 'AdvancedSecuritySystem' from 'watermark_lab.security.advanced_security' (/root/repo/src/watermark_lab/security/advanced_security.py)"
+        }
+      ]
+    },
+    "docker_availability": {
+      "status": "TESTING",
+      "tests": [
+        {
+          "name": "Docker available",
+          "status": "PASS",
+          "version": "Docker version 28.3.3, build 980b856"
+        },
+        {
+          "name": "Docker Compose available",
+          "status": "PASS",
+          "version": "docker-compose version 1.29.2, build unknown"
+        }
+      ]
+    },
+    "configuration_files": {
+      "status": "TESTING",
+      "tests": [
+        {
+          "name": "Config file pyproject.toml",
+          "status": "PASS"
+        },
+        {
+          "name": "Config file Dockerfile",
+          "status": "PASS"
+        },
+        {
+          "name": "Config file docker-compose.yml",
+          "status": "PASS"
+        },
+        {
+          "name": "Config file src/watermark_lab/__init__.py",
+          "status": "PASS"
+        },
+        {
+          "name": "Config file scripts/deploy.sh",
+          "status": "PASS"
+        }
+      ]
+    }
+  }
+}

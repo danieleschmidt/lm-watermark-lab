@@ -1,0 +1,47 @@
+{
+  "novel_algorithms": {
+    "timestamp": "2025-08-22T21:59:06.859085",
+    "validation_successful": false,
+    "error": "cannot import name 'AutoModelForCausalLM' from '<unknown module name>' (unknown location)",
+    "traceback": "Traceback (most recent call last):\n  File \"/root/repo/comprehensive_research_validation.py\", line 64, in validate_novel_algorithms\n    from watermark_lab.research.novel_algorithms import (\n  File \"/root/repo/src/watermark_lab/research/__init__.py\", line 3, in <module>\n    from .experimental_framework import ExperimentalFramework, ExperimentConfig, run_watermark_experiment\n  File \"/root/repo/src/watermark_lab/research/experimental_framework.py\", line 24, in <module>\n    from ..core.factory import WatermarkFactory\n  File \"/root/repo/src/watermark_lab/core/factory.py\", line 40, in <module>\n    from ..methods.kirchenbauer import KirchenbauerWatermark\n  File \"/root/repo/src/watermark_lab/methods/__init__.py\", line 3, in <module>\n    from watermark_lab.methods.base import BaseWatermark\n  File \"/root/repo/src/watermark_lab/methods/base.py\", line 8, in <module>\n    from transformers import AutoTokenizer, AutoModelForCausalLM\nImportError: cannot import name 'AutoModelForCausalLM' from '<unknown module name>' (unknown location)\n"
+  },
+  "comparative_studies": {
+    "timestamp": "2025-08-22T21:59:06.863430",
+    "analysis_successful": false,
+    "error": "cannot import name 'AutoModelForCausalLM' from '<unknown module name>' (unknown location)",
+    "traceback": "Traceback (most recent call last):\n  File \"/root/repo/comprehensive_research_validation.py\", line 196, in run_comparative_studies\n    from watermark_lab.research.comparative_study import (\n  File \"/root/repo/src/watermark_lab/research/__init__.py\", line 3, in <module>\n    from .experimental_framework import ExperimentalFramework, ExperimentConfig, run_watermark_experiment\n  File \"/root/repo/src/watermark_lab/research/experimental_framework.py\", line 24, in <module>\n    from ..core.factory import WatermarkFactory\n  File \"/root/repo/src/watermark_lab/core/factory.py\", line 40, in <module>\n    from ..methods.kirchenbauer import KirchenbauerWatermark\n  File \"/root/repo/src/watermark_lab/methods/__init__.py\", line 3, in <module>\n    from watermark_lab.methods.base import BaseWatermark\n  File \"/root/repo/src/watermark_lab/methods/base.py\", line 8, in <module>\n    from transformers import AutoTokenizer, AutoModelForCausalLM\nImportError: cannot import name 'AutoModelForCausalLM' from '<unknown module name>' (unknown location)\n"
+  },
+  "reproducibility": {
+    "timestamp": "2025-08-22T21:59:06.866032",
+    "validation_successful": false,
+    "error": "cannot import name 'AutoModelForCausalLM' from '<unknown module name>' (unknown location)",
+    "traceback": "Traceback (most recent call last):\n  File \"/root/repo/comprehensive_research_validation.py\", line 293, in validate_reproducibility\n    from watermark_lab.research.reproducibility import (\n  File \"/root/repo/src/watermark_lab/research/__init__.py\", line 3, in <module>\n    from .experimental_framework import ExperimentalFramework, ExperimentConfig, run_watermark_experiment\n  File \"/root/repo/src/watermark_lab/research/experimental_framework.py\", line 24, in <module>\n    from ..core.factory import WatermarkFactory\n  File \"/root/repo/src/watermark_lab/core/factory.py\", line 40, in <module>\n    from ..methods.kirchenbauer import KirchenbauerWatermark\n  File \"/root/repo/src/watermark_lab/methods/__init__.py\", line 3, in <module>\n    from watermark_lab.methods.base import BaseWatermark\n  File \"/root/repo/src/watermark_lab/methods/base.py\", line 8, in <module>\n    from transformers import AutoTokenizer, AutoModelForCausalLM\nImportError: cannot import name 'AutoModelForCausalLM' from '<unknown module name>' (unknown location)\n"
+  },
+  "publication_materials": {
+    "timestamp": "2025-08-22T21:59:06.868352",
+    "publication_ready": false,
+    "error": "cannot import name 'AutoModelForCausalLM' from '<unknown module name>' (unknown location)",
+    "traceback": "Traceback (most recent call last):\n  File \"/root/repo/comprehensive_research_validation.py\", line 405, in prepare_publication_materials\n    from watermark_lab.research.publication_prep import (\n  File \"/root/repo/src/watermark_lab/research/__init__.py\", line 3, in <module>\n    from .experimental_framework import ExperimentalFramework, ExperimentConfig, run_watermark_experiment\n  File \"/root/repo/src/watermark_lab/research/experimental_framework.py\", line 24, in <module>\n    from ..core.factory import WatermarkFactory\n  File \"/root/repo/src/watermark_lab/core/factory.py\", line 40, in <module>\n    from ..methods.kirchenbauer import KirchenbauerWatermark\n  File \"/root/repo/src/watermark_lab/methods/__init__.py\", line 3, in <module>\n    from watermark_lab.methods.base import BaseWatermark\n  File \"/root/repo/src/watermark_lab/methods/base.py\", line 8, in <module>\n    from transformers import AutoTokenizer, AutoModelForCausalLM\nImportError: cannot import name 'AutoModelForCausalLM' from '<unknown module name>' (unknown location)\n"
+  },
+  "quality_validation": {
+    "timestamp": "2025-08-22T21:59:06.868809",
+    "quality_gates": {
+      "statistical_significance": false,
+      "reproducibility": false,
+      "baseline_comparison": false,
+      "novel_algorithm_validation": false,
+      "publication_readiness": false
+    },
+    "quality_details": {
+      "statistical_significance": "Only 0/0 methods significant",
+      "reproducibility": "Reproducibility verification failed",
+      "baseline_comparison": "Comparative study failed",
+      "novel_algorithm_validation": "Novel algorithm validation failed",
+      "publication_readiness": "Publication preparation failed"
+    },
+    "quality_score": 0.0,
+    "passed_gates": 0,
+    "total_gates": 5,
+    "publication_ready": false
+  }
+}
