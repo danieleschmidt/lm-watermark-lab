@@ -429,3 +429,209 @@ _global_manager = ResilienceManager()
 def get_global_resilience_manager() -> ResilienceManager:
     """Get global resilience manager instance."""
     return _global_manager
+
+
+class HealthChecker:
+    """Advanced health checking with dependency validation."""
+    
+    def __init__(self):
+        self.checks: Dict[str, Callable] = {}
+        self.dependencies: Dict[str, List[str]] = {}
+        self.last_results: Dict[str, Dict[str, Any]] = {}
+        
+    def register_check(self, name: str, check_func: Callable, dependencies: List[str] = None):
+        """Register a health check function."""
+        self.checks[name] = check_func
+        self.dependencies[name] = dependencies or []
+        
+    async def run_all_checks(self) -> Dict[str, Any]:
+        """Run all health checks with dependency ordering."""
+        results = {}
+        execution_order = self._get_execution_order()
+        
+        for check_name in execution_order:
+            try:
+                start_time = time.time()
+                if asyncio.iscoroutinefunction(self.checks[check_name]):
+                    result = await self.checks[check_name]()
+                else:
+                    result = self.checks[check_name]()
+                    
+                execution_time = time.time() - start_time
+                
+                results[check_name] = {
+                    'status': 'healthy' if result else 'unhealthy',
+                    'result': result,
+                    'execution_time': execution_time,
+                    'timestamp': time.time()
+                }
+                
+            except Exception as e:
+                results[check_name] = {
+                    'status': 'error',
+                    'error': str(e),
+                    'execution_time': time.time() - start_time,
+                    'timestamp': time.time()
+                }
+        
+        self.last_results = results
+        return results
+    
+    def _get_execution_order(self) -> List[str]:
+        """Get execution order based on dependencies."""
+        visited = set()
+        order = []
+        
+        def visit(check_name: str):
+            if check_name in visited:
+                return
+            visited.add(check_name)
+            
+            for dep in self.dependencies.get(check_name, []):
+                if dep in self.checks:
+                    visit(dep)
+            
+            order.append(check_name)
+        
+        for check_name in self.checks:
+            visit(check_name)
+            
+        return order
+
+
+class GracefulShutdown:
+    """Graceful shutdown handler with cleanup coordination."""
+    
+    def __init__(self):
+        self.shutdown_callbacks: List[Callable] = []
+        self.is_shutting_down = False
+        self._lock = threading.Lock()
+        
+    def register_cleanup(self, callback: Callable):
+        """Register cleanup callback for shutdown."""
+        with self._lock:
+            self.shutdown_callbacks.append(callback)
+    
+    def initiate_shutdown(self, timeout: float = 30.0):
+        """Initiate graceful shutdown sequence."""
+        with self._lock:
+            if self.is_shutting_down:
+                return
+            self.is_shutting_down = True
+        
+        logger.info("Initiating graceful shutdown...")
+        
+        for i, callback in enumerate(self.shutdown_callbacks):
+            try:
+                start_time = time.time()
+                callback()
+                execution_time = time.time() - start_time
+                logger.info(f"Cleanup callback {i+1} completed in {execution_time:.2f}s")
+            except Exception as e:
+                logger.error(f"Cleanup callback {i+1} failed: {e}")
+        
+        logger.info("Graceful shutdown completed")
+
+
+class ResourceMonitor:
+    """Enhanced resource monitoring with alerts."""
+    
+    def __init__(self, config: ResilienceConfig = None):
+        self.config = config or ResilienceConfig()
+        self.alerts: List[Dict[str, Any]] = []
+        self.thresholds = {
+            'cpu_percent': 85.0,
+            'memory_percent': 85.0,
+            'disk_percent': 90.0,
+            'open_files_percent': 90.0
+        }
+        
+    def check_resources(self) -> Dict[str, Any]:
+        """Comprehensive resource check."""
+        try:
+            # CPU usage
+            cpu_percent = psutil.cpu_percent(interval=1)
+            
+            # Memory usage
+            memory = psutil.virtual_memory()
+            memory_percent = memory.percent
+            
+            # Disk usage
+            disk = psutil.disk_usage('/')
+            disk_percent = (disk.used / disk.total) * 100
+            
+            # Open files
+            process = psutil.Process()
+            open_files = len(process.open_files())
+            max_open_files = process.rlimit(psutil.RLIMIT_NOFILE)[0]
+            open_files_percent = (open_files / max_open_files) * 100
+            
+            # Network connections
+            network_connections = len(psutil.net_connections())
+            
+            # Thread count
+            thread_count = threading.active_count()
+            
+            resources = {
+                'cpu_percent': cpu_percent,
+                'memory_percent': memory_percent,
+                'memory_available_mb': memory.available // (1024 * 1024),
+                'disk_percent': disk_percent,
+                'disk_free_gb': disk.free // (1024 ** 3),
+                'open_files': open_files,
+                'open_files_percent': open_files_percent,
+                'max_open_files': max_open_files,
+                'network_connections': network_connections,
+                'thread_count': thread_count,
+                'timestamp': time.time()
+            }
+            
+            # Check thresholds and create alerts
+            self._check_thresholds(resources)
+            
+            return resources
+            
+        except Exception as e:
+            logger.error(f"Error checking resources: {e}")
+            return {'error': str(e), 'timestamp': time.time()}
+    
+    def _check_thresholds(self, resources: Dict[str, Any]):
+        """Check resource thresholds and create alerts."""
+        for metric, threshold in self.thresholds.items():
+            if metric in resources and resources[metric] > threshold:
+                alert = {
+                    'type': 'resource_threshold',
+                    'metric': metric,
+                    'value': resources[metric],
+                    'threshold': threshold,
+                    'timestamp': time.time(),
+                    'severity': 'high' if resources[metric] > threshold * 1.1 else 'medium'
+                }
+                self.alerts.append(alert)
+                logger.warning(f"Resource alert: {metric} = {resources[metric]:.1f}% (threshold: {threshold}%)")
+    
+    def get_recent_alerts(self, max_age: float = 300.0) -> List[Dict[str, Any]]:
+        """Get recent alerts within max_age seconds."""
+        current_time = time.time()
+        return [
+            alert for alert in self.alerts
+            if current_time - alert['timestamp'] <= max_age
+        ]
+
+
+# Global instances
+_health_checker = HealthChecker()
+_shutdown_handler = GracefulShutdown()
+_resource_monitor = ResourceMonitor()
+
+def get_health_checker() -> HealthChecker:
+    """Get global health checker."""
+    return _health_checker
+
+def get_shutdown_handler() -> GracefulShutdown:
+    """Get global shutdown handler."""
+    return _shutdown_handler
+
+def get_resource_monitor() -> ResourceMonitor:
+    """Get global resource monitor."""
+    return _resource_monitor

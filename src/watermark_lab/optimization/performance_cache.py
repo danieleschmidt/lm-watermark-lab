@@ -11,6 +11,19 @@ from collections import OrderedDict
 from enum import Enum
 import weakref
 
+# Handle missing psutil gracefully
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    try:
+        from ..utils.fallback_imports import psutil, psutil_available
+        HAS_PSUTIL = psutil_available
+    except ImportError:
+        HAS_PSUTIL = False
+        # Create minimal stub for missing psutil
+        psutil = None
+
 T = TypeVar('T')
 
 class CacheStrategy(Enum):

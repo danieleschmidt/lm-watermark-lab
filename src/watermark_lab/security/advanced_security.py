@@ -21,6 +21,108 @@ class SecurityError(Exception):
     """Security-related exception."""
     pass
 
+
+class AdvancedInputSanitizer:
+    """Advanced input sanitization with pattern detection."""
+    
+    def __init__(self):
+        self.dangerous_patterns = {
+            'sql_injection': [
+                r"(?i)('|(\")|;|--).*?(?:union|select|insert|update|delete|drop|exec|execute)",
+                r"(?i)\b(?:union|select|insert|update|delete|drop|create|alter|exec|execute|declare|cast)\b",
+                r"(?i)\b(?:or|and)\b\s+(?:\d+\s*=\s*\d+|'[^']*'\s*=\s*'[^']*')",
+            ],
+            'xss': [
+                r"(?i)<script[^>]*>.*?</script>",
+                r"(?i)javascript:",
+                r"(?i)on\w+\s*=",
+                r"(?i)<iframe[^>]*>",
+                r"(?i)<object[^>]*>",
+                r"(?i)<embed[^>]*>",
+            ],
+            'path_traversal': [
+                r"\.\.[\\/]",
+                r"[\\/]\.\.[\\/]",
+                r"%2e%2e[\\/]",
+                r"[\\/]%2e%2e[\\/]",
+            ],
+            'command_injection': [
+                r"(?i)\b(?:cat|ls|pwd|whoami|id|uname|ps|kill|rm|mv|cp|chmod|chown)\b",
+                r"[;&|`$(){}[\]]",
+                r"(?i)\b(?:exec|eval|system|shell_exec)\b",
+            ]
+        }
+        
+        # Compile patterns for performance
+        self.compiled_patterns = {
+            category: [re.compile(pattern) for pattern in patterns]
+            for category, patterns in self.dangerous_patterns.items()
+        }
+    
+    def sanitize_input(self, input_data: Any, max_length: int = 10000) -> Any:
+        """Comprehensive input sanitization."""
+        if input_data is None:
+            return None
+            
+        if isinstance(input_data, str):
+            return self._sanitize_string(input_data, max_length)
+        elif isinstance(input_data, dict):
+            return {k: self.sanitize_input(v, max_length) for k, v in input_data.items()}
+        elif isinstance(input_data, list):
+            return [self.sanitize_input(item, max_length) for item in input_data]
+        else:
+            return input_data
+    
+    def _sanitize_string(self, text: str, max_length: int) -> str:
+        """Sanitize string input."""
+        # Length check
+        if len(text) > max_length:
+            raise SecurityError(f"Input too long: {len(text)} > {max_length}")
+        
+        # Check for dangerous patterns
+        threats = self.detect_threats(text)
+        if threats:
+            threat_types = [threat['type'] for threat in threats]
+            raise SecurityError(f"Dangerous patterns detected: {', '.join(threat_types)}")
+        
+        # HTML encoding for basic protection
+        text = text.replace('<', '&lt;').replace('>', '&gt;')
+        text = text.replace('"', '&quot;').replace("'", '&#x27;')
+        text = text.replace('&', '&amp;')
+        
+        # Remove null bytes and control characters
+        text = ''.join(char for char in text if ord(char) >= 32 or char in '\t\n\r')
+        
+        return text.strip()
+    
+    def detect_threats(self, text: str) -> List[Dict[str, Any]]:
+        """Detect security threats in text."""
+        threats = []
+        
+        for category, patterns in self.compiled_patterns.items():
+            for pattern in patterns:
+                matches = pattern.finditer(text)
+                for match in matches:
+                    threats.append({
+                        'type': category,
+                        'pattern': pattern.pattern,
+                        'match': match.group(),
+                        'position': match.span(),
+                        'severity': self._get_severity(category)
+                    })
+        
+        return threats
+    
+    def _get_severity(self, threat_type: str) -> str:
+        """Get severity level for threat type."""
+        severity_map = {
+            'sql_injection': 'critical',
+            'command_injection': 'critical',
+            'xss': 'high',
+            'path_traversal': 'high'
+        }
+        return severity_map.get(threat_type, 'medium')
+
 class SecurityLevel(Enum):
     """Security levels for operations."""
     PUBLIC = "public"
