@@ -62,15 +62,46 @@ except ImportError:
 # Mock psutil
 class MockPsutil:
     @staticmethod
-    def cpu_percent():
-        return 0.0
+    def cpu_percent(interval=None):
+        import random
+        return random.uniform(10, 80)
     
-    class Process:
-        def memory_info(self):
-            class MemInfo:
-                def __init__(self):
-                    self.rss = 1024 * 1024 * 50  # 50MB
-            return MemInfo()
+    @staticmethod
+    def virtual_memory():
+        class MemoryInfo:
+            def __init__(self):
+                self.total = 8 * 1024 * 1024 * 1024  # 8GB
+                self.available = 4 * 1024 * 1024 * 1024  # 4GB  
+                self.percent = 50.0
+                self.used = 4 * 1024 * 1024 * 1024
+        return MemoryInfo()
+    
+    @staticmethod
+    def disk_usage(path):
+        class DiskUsage:
+            def __init__(self):
+                self.total = 100 * 1024 * 1024 * 1024  # 100GB
+                self.used = 50 * 1024 * 1024 * 1024   # 50GB
+                self.free = 50 * 1024 * 1024 * 1024    # 50GB
+        return DiskUsage()
+    
+    @staticmethod  
+    def net_connections():
+        return [1, 2, 3]  # Mock connections
+    
+    @staticmethod
+    def Process():
+        class MockProcess:
+            def open_files(self):
+                return [1, 2, 3]  # Mock file handles
+            def rlimit(self, resource):
+                return (1024, 1024)
+            def memory_info(self):
+                class MemInfo:
+                    def __init__(self):
+                        self.rss = 1024 * 1024 * 50  # 50MB
+                return MemInfo()
+        return MockProcess()
 
 try:
     import psutil

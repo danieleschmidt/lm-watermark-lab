@@ -44,9 +44,9 @@ class QuantumResourceState:
             cpu_percent = psutil.cpu_percent(interval=0.1)
             memory = psutil.virtual_memory()
             
-            # Quantum-inspired measurements
+            # Quantum-inspired measurements with coherence optimization
             self.cpu_superposition = [
-                cpu_percent / 100.0 + random.gauss(0, 0.05)
+                cpu_percent / 100.0 + random.gauss(0, 0.05) * math.cos(time.time() * 0.1)
                 for _ in range(8)
             ]
             
