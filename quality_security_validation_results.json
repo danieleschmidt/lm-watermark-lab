@@ -1,0 +1,46 @@
+{
+  "all_gates_passed": true,
+  "overall_score": 0.9791666666666666,
+  "validation_results": {
+    "functionality": {
+      "passed": true,
+      "score": 1.0,
+      "generation_works": true,
+      "detection_works": true,
+      "false_positive_controlled": true
+    },
+    "robustness": {
+      "passed": true,
+      "score": 0.9166666666666666,
+      "error_handling_score": 0.75,
+      "config_validation_works": true,
+      "input_sanitization_works": true
+    },
+    "performance": {
+      "passed": true,
+      "score": 1.0,
+      "single_generation_time_ms": 0.22482872009277344,
+      "single_detection_time_ms": 0.064849853515625,
+      "batch_throughput_ops_per_sec": 2807.620322645425,
+      "cache_speedup": 8.129310344827585,
+      "targets_met": {
+        "single_generation_fast": true,
+        "single_detection_fast": true,
+        "batch_throughput_good": true,
+        "cache_speedup_good": true
+      }
+    },
+    "security": {
+      "passed": true,
+      "score": 1.0,
+      "key_validation_works": true,
+      "input_sanitization_effective": true,
+      "rate_limiting_implemented": true,
+      "secure_hashing_implemented": true,
+      "sanitization_score": 1.0
+    }
+  },
+  "duration_seconds": 0.016065597534179688,
+  "timestamp": "2025-08-26T18:07:42.578335",
+  "verdict": "PRODUCTION_READY"
+}

@@ -1,0 +1,65 @@
+{
+  "single_operations": {
+    "generation_time_ms": 0.3058910369873047,
+    "cached_generation_time_ms": 0.014066696166992188,
+    "detection_time_ms": 0.08368492126464844,
+    "speedup_factor": 3.058910369873047
+  },
+  "batch_operations": {
+    "batch_size": 20,
+    "batch_generation_time_ms": 11.390209197998047,
+    "batch_detection_time_ms": 7.250308990478516,
+    "generation_throughput_per_sec": 1755.894000921003,
+    "detection_throughput_per_sec": 2758.5031239723776
+  },
+  "scaling": {
+    "large_text_words": 70,
+    "large_detection_time_ms": 0.08368492126464844,
+    "processing_speed_words_per_sec": 836470.8831908832
+  },
+  "overall_stats": {
+    "operations_count": 23,
+    "cache_hit_rate": 0.6764044943820224,
+    "cache_size": 2144,
+    "expired_entries_cleaned": 0,
+    "parallel_operations": 2,
+    "performance_metrics": {
+      "generation_time": {
+        "count": 23,
+        "min": 1.049041748046875e-05,
+        "max": 0.0002918243408203125,
+        "mean": 0.00013281988060992697,
+        "p50": 0.00011754035949707031,
+        "p95": 0.0002815723419189453,
+        "p99": 0.0002918243408203125
+      },
+      "detection_time": {
+        "count": 22,
+        "min": 4.3392181396484375e-05,
+        "max": 0.00018548965454101562,
+        "mean": 9.150938554243608e-05,
+        "p50": 9.107589721679688e-05,
+        "p95": 0.00015687942504882812,
+        "p99": 0.00018548965454101562
+      },
+      "batch_generation_time": {
+        "count": 1,
+        "min": 0.011249542236328125,
+        "max": 0.011249542236328125,
+        "mean": 0.011249542236328125,
+        "p50": 0.011249542236328125,
+        "p95": 0.011249542236328125,
+        "p99": 0.011249542236328125
+      },
+      "batch_detection_time": {
+        "count": 1,
+        "min": 0.007176399230957031,
+        "max": 0.007176399230957031,
+        "mean": 0.007176399230957031,
+        "p50": 0.007176399230957031,
+        "p95": 0.007176399230957031,
+        "p99": 0.007176399230957031
+      }
+    }
+  }
+}
