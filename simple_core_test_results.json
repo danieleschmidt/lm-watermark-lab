@@ -1,0 +1,31 @@
+{
+  "test_results": [
+    {
+      "prompt": "The future of artificial intelligence",
+      "watermarked_detected": true,
+      "watermarked_confidence": 0.875,
+      "clean_detected": false,
+      "generation_time": 0.00011324882507324219
+    },
+    {
+      "prompt": "Climate change requires immediate action",
+      "watermarked_detected": true,
+      "watermarked_confidence": 0.875,
+      "clean_detected": false,
+      "generation_time": 4.5299530029296875e-05
+    },
+    {
+      "prompt": "Quantum computing breakthrough announced",
+      "watermarked_detected": true,
+      "watermarked_confidence": 0.875,
+      "clean_detected": false,
+      "generation_time": 3.457069396972656e-05
+    }
+  ],
+  "summary": {
+    "watermarked_detection_rate": 1.0,
+    "clean_rejection_rate": 1.0,
+    "average_generation_time": 6.437301635742188e-05,
+    "average_confidence": 0.875
+  }
+}
